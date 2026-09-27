@@ -1,0 +1,7 @@
+# The designers' code: cloned separately (Build Guide, Part 3.1), never part of our repository
+ascon-c/
+# Made by our scripts: never edit or commit these
+build/
+variants/
+results_pilot/
+__pycache__/

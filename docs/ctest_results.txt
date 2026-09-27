@@ -1,0 +1,27 @@
+Test project C:/Users/sthas/Ascon-bench/build/cmake
+      Start  1: genkat_crypto_hash_asconhash256_ref
+ 1/11 Test  #1: genkat_crypto_hash_asconhash256_ref .....   Passed   10.69 sec
+      Start  2: genkat_crypto_hash_asconhash256_opt64
+ 2/11 Test  #2: genkat_crypto_hash_asconhash256_opt64 ...   Passed    0.74 sec
+      Start  3: genkat_crypto_hash_asconxof128_ref
+ 3/11 Test  #3: genkat_crypto_hash_asconxof128_ref ......   Passed    0.81 sec
+      Start  4: genkat_crypto_hash_asconxof128_opt64
+ 4/11 Test  #4: genkat_crypto_hash_asconxof128_opt64 ....   Passed    1.15 sec
+      Start  5: genkat_crypto_cxof_asconcxof128_ref
+ 5/11 Test  #5: genkat_crypto_cxof_asconcxof128_ref .....   Passed    0.73 sec
+      Start  6: genkat_crypto_auth_asconmacv13_ref
+ 6/11 Test  #6: genkat_crypto_auth_asconmacv13_ref ......   Passed    0.79 sec
+      Start  7: genkat_crypto_auth_asconmacv13_opt64
+ 7/11 Test  #7: genkat_crypto_auth_asconmacv13_opt64 ....   Passed    0.80 sec
+      Start  8: genkat_crypto_auth_asconprfv13_ref
+ 8/11 Test  #8: genkat_crypto_auth_asconprfv13_ref ......   Passed    0.82 sec
+      Start  9: genkat_crypto_auth_asconprfv13_opt64
+ 9/11 Test  #9: genkat_crypto_auth_asconprfv13_opt64 ....   Passed    0.79 sec
+      Start 10: genkat_crypto_auth_asconprfsv13_ref
+10/11 Test #10: genkat_crypto_auth_asconprfsv13_ref .....   Passed    0.71 sec
+      Start 11: genkat_crypto_auth_asconprfsv13_opt64
+11/11 Test #11: genkat_crypto_auth_asconprfsv13_opt64 ...   Passed    0.70 sec
+
+100% tests passed out of 11
+
+Total Test time (real) =  18.76 sec
