@@ -1,2 +1,0 @@
-target,msg_bytes,out_bytes,original_samples,diagnostic_samples,original_median_ticks,diagnostic_median_ticks,diagnostic_change_pct
-ascon_mac,1,16,30,30,389.8325,230.4223,-40.89

@@ -15,15 +15,13 @@
  *   way, with the same input bytes. So this one program times every
  *   function. You choose the function when you compile it:
  *     -I<folder>   which Ascon code is used
- *     -DMODE_...   how it is called (one of the seven modes below)
+ *     -DMODE_...   how it is called (one of the five modes below)
  *
- * THE SEVEN MODES
+ * THE FIVE MODES
  *   MODE_AUTH        Ascon-Mac, Ascon-Prf or Ascon-PrfShort (proposed)
- *   MODE_HASH        Hash256 or XOF128 with no key (a lower bound only)
  *   MODE_KEYED_HASH  Hash256 or XOF128 of key || message (a MAC or PRF)
- *   MODE_CXOF        plain CXOF128 (optimised or reference code)
- *   MODE_AMAC        AMAC, NIST's planned MAC (Kerry McKay's slides)
- *   MODE_AKDF        AKDF, NIST's planned KDF (Kerry McKay's slides)
+ *   MODE_AMAC        AMAC, NIST's planned MAC, built on CXOF128
+ *   MODE_AKDF        AKDF, NIST's planned KDF, built on CXOF128
  *   MODE_PRF_KDF     Ascon-Prf given exactly the same inputs as AKDF
  *
  * HOW TO RUN IT (Command Prompt)
@@ -67,7 +65,7 @@ static int out_len;                   /* output bytes */
 
 #if defined(MODE_AMAC) || defined(MODE_AKDF)
 /* ---- THE INPUT FORMAT OF AMAC AND AKDF -----------------------------------
-   Kerry McKay's slides define both functions as
+   NIST's planned AMAC and AKDF are both defined as
        CXOF128( bytepad(K, 32) || X || right_encode(L),  L,  label )
    using two encodings from NIST SP 800-185 (the KMAC standard):
      left_encode(x)   the number of bytes in x, then x (highest byte first)
@@ -157,22 +155,6 @@ static int one_call(unsigned long long size) {
   return crypto_auth(out, msg, size, key);
 }
 
-#elif defined(MODE_HASH)
-/* Hash256 or XOF128 with no key: it authenticates nothing, so it is only a
-   lower bound on what a keyed function could cost. */
-#include "api.h"
-#include "crypto_hash.h"
-#define MODE_NAME "hash"
-#define KEY_BYTES 0
-#define SIZE_LIMIT MAX_MSG
-static void prepare(unsigned long long size) {
-  in_len = size;
-  out_len = CRYPTO_BYTES;
-}
-static int one_call(unsigned long long size) {
-  return crypto_hash(out, msg, size);
-}
-
 #elif defined(MODE_KEYED_HASH)
 /* A MAC or PRF made from Hash256 or XOF128: hash the key followed by the
    message. The hash has no key input, so the key goes in as data.
@@ -193,24 +175,8 @@ static int one_call(unsigned long long size) {
   return crypto_hash(out, keyed, KEY_LEN + size);
 }
 
-#elif defined(MODE_CXOF)
-/* Plain Ascon-CXOF128: the message, the label as the customization string,
-   and 64 bytes out (the same output length as bare XOF128). */
-#include "crypto_cxof.h"
-#define MODE_NAME "cxof"
-#define KEY_BYTES 0
-#define SIZE_LIMIT MAX_MSG
-static void prepare(unsigned long long size) {
-  in_len = size;
-  out_len = 64;
-}
-static int one_call(unsigned long long size) {
-  return crypto_cxof(out, 64, msg, size, (const unsigned char*)BENCH_LABEL,
-                     BENCH_LABEL_LEN);
-}
-
 #elif defined(MODE_AMAC)
-/* AMAC (Kerry's slide 3):
+/* AMAC, NIST's planned MAC:
      CXOF128( bytepad(K,32) || X || right_encode(L),  L,  "AMAC" || S )
    K = our key, X = the message, L = 128 bits (a 16-byte tag, like
    Ascon-Mac), S = empty. The input is formatted before timing. */
@@ -228,7 +194,7 @@ static int one_call(unsigned long long size) {
 }
 
 #elif defined(MODE_AKDF)
-/* AKDF (Kerry's slide 5):
+/* AKDF, NIST's planned KDF:
      CXOF128( bytepad(K,32) || X || right_encode(L),  L,  "AKDF" || S )
    K = our key, X = 16 bytes of key data, S = "encryption key", and
    L = the size asked for: the length of the derived key. */
@@ -270,7 +236,7 @@ static int one_call(unsigned long long size) {
 }
 
 #else
-#error "Compile with one of: -DMODE_AUTH -DMODE_HASH -DMODE_KEYED_HASH -DMODE_CXOF -DMODE_AMAC -DMODE_AKDF -DMODE_PRF_KDF"
+#error "Compile with one of: -DMODE_AUTH -DMODE_KEYED_HASH -DMODE_AMAC -DMODE_AKDF -DMODE_PRF_KDF"
 #endif
 
 /* ---- THE CLOCK ------------------------------------------------------------

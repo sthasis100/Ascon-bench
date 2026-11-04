@@ -16,8 +16,7 @@ THE FIGURES (saved in the results folder, under figures)
   fig7   how many times faster Ascon-Mac is than each MAC
   fig8   how many times faster Ascon-Prf is than the XOF128 PRF
   fig9   key derivation: Ascon-Prf against AKDF
-  fig10  CXOF128: Kerry's opt64 build, the reference, and XOF128
-  fig11  code size at -O3 and -Os
+  fig10  code size at -O3 and -Os
 
 RUN (Command Prompt, in the project folder)
   python plots.py                  the real results
@@ -46,24 +45,22 @@ with open(RESULTS + "/environment.json") as f:
     ghz = json.load(f)["nominal_ghz"]
 
 # The same name and colour for a function in every figure.
-# Line style: proposed solid, baselines dashed, lower bounds dotted.
+# Line style: proposed solid, baselines dashed.
 STYLE = {
     "ascon_mac":        ("Ascon-Mac (proposed)", "#c0392b", "-"),
     "ascon_prf":        ("Ascon-Prf (proposed)", "#e67e22", "-"),
     "ascon_prfshort":   ("Ascon-PrfShort (proposed)", "#27ae60", "-"),
     "prf_kdf":          ("Ascon-Prf, AKDF inputs (proposed)", "#e67e22", "-"),
-    "amac":             ("AMAC (NIST plan)", "#6c3483", "--"),
-    "akdf":             ("AKDF (NIST plan)", "#6c3483", "--"),
+    "amac":             ("AMAC (NIST planned)", "#6c3483", "--"),
+    "akdf":             ("AKDF (NIST planned)", "#6c3483", "--"),
     "mac_from_xof128":  ("MAC from XOF128, 16 B", "#2471a3", "--"),
     "mac_from_hash256": ("MAC from Hash256, 32 B", "#117a65", "--"),
     "prf_from_xof128":  ("PRF from XOF128, 64 B", "#5dade2", "--"),
-    "cxof128":          ("CXOF128, opt64 (Kerry)", "#7f8c8d", "-."),
-    "cxof128_ref":      ("CXOF128, reference", "#b3b6b7", ":"),
-    "hash256_bare":     ("Hash256, no key (lower bound)", "#909497", ":"),
-    "xof128_bare":      ("XOF128, no key (lower bound)", "#566573", ":"),
 }
+# The functions measured at all 13 message sizes (PrfShort stops at 16 bytes
+# and has its own figure, fig2).
 MAIN = ["ascon_mac", "ascon_prf", "amac", "mac_from_xof128", "mac_from_hash256",
-        "prf_from_xof128", "cxof128", "hash256_bare", "xof128_bare"]
+        "prf_from_xof128"]
 
 
 def save(fig, name):
@@ -170,7 +167,7 @@ if ghz:
           f"Throughput (converted from cycles at {ghz} GHz)", "fig4_throughput")
 
 # fig5: heat map - each function's cycles per byte, divided by the fastest
-table = summary[summary["target"].isin(MAIN + ["cxof128_ref"])].pivot_table(
+table = summary[summary["target"].isin(MAIN)].pivot_table(
     index="target", columns="size", values="cycles_per_byte_median")
 relative = table / table.min()
 fig, ax = plt.subplots(figsize=(10, 5))
@@ -231,13 +228,8 @@ bars(group_names,
      "CPU cycles per call (median)", "Key derivation: same key, data, label and key length",
      "fig9_kdf")
 
-# fig10: CXOF128 - Kerry's opt64 build, the reference, and XOF128
-lines(["cxof128", "cxof128_ref", "xof128_bare"], "cycles_per_byte_median",
-      "CPU cycles per byte (median, log scale)",
-      "CXOF128: opt64 (Kerry's recipe), reference, and XOF128", "fig10_cxof")
-
-# fig11: code size
+# fig10: code size
 bars(list(code_size["function"]),
      [("-O3 (the code we time)", "#2471a3", list(code_size["text_bytes_O3"]), []),
       ("-Os (small devices)", "#b3b6b7", list(code_size["text_bytes_Os"]), [])],
-     "bytes of machine code", "Code size (execution size)", "fig11_code_size", tilt=25)
+     "bytes of machine code", "Code size (execution size)", "fig10_code_size", tilt=25)
