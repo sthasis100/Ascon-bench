@@ -16,14 +16,14 @@ WHAT IT DOES
      order. Every single repetition is saved; nothing is averaged here.
 
 WHY ONE SCRIPT
-  About 100 commands, always in the same order with the same flags.
+  About 120 commands, always in the same order with the same flags.
   Typing them by hand every run is where mistakes creep in.
 
 RUN (Command Prompt, in the project folder)
   python run_all.py            the real study       -> results
   python run_all.py --pilot    a quick trial run    -> results_pilot
-                               (5 repetitions, 2 or 3 sizes per program;
-                                it can never overwrite the real results)
+                               (5 repetitions, 3 sizes; it can never
+                                overwrite the real results)
 ===========================================================================
 """
 import csv
@@ -68,17 +68,21 @@ CORE = 2
 if os.cpu_count() is None or os.cpu_count() <= 2:
     CORE = 0
 
-# The 9 benchmark programs: name, role, mode, Ascon folder, sizes.
+# The 13 benchmark programs: name, role, mode, Ascon folder, sizes.
 TARGETS = [
-    ("ascon_mac",        "proposed", "AUTH",       A + "/crypto_auth/asconmacv13/opt64",  LONG),
-    ("ascon_prf",        "proposed", "AUTH",       A + "/crypto_auth/asconprfv13/opt64",  LONG),
-    ("ascon_prfshort",   "proposed", "AUTH",       A + "/crypto_auth/asconprfsv13/opt64", SHORT),
-    ("prf_kdf",          "proposed", "PRF_KDF",    A + "/crypto_auth/asconprfv13/opt64",  KDF),
-    ("amac",             "baseline", "AMAC",       CXOF,                                  LONG),
-    ("akdf",             "baseline", "AKDF",       CXOF,                                  KDF),
-    ("mac_from_xof128",  "baseline", "KEYED_HASH", XOF16,                                 LONG),
-    ("mac_from_hash256", "baseline", "KEYED_HASH", A + "/crypto_hash/asconhash256/opt64", LONG),
-    ("prf_from_xof128",  "baseline", "KEYED_HASH", A + "/crypto_hash/asconxof128/opt64",  LONG),
+    ("ascon_mac",        "proposed",    "AUTH",       A + "/crypto_auth/asconmacv13/opt64",  LONG),
+    ("ascon_prf",        "proposed",    "AUTH",       A + "/crypto_auth/asconprfv13/opt64",  LONG),
+    ("ascon_prfshort",   "proposed",    "AUTH",       A + "/crypto_auth/asconprfsv13/opt64", SHORT),
+    ("prf_kdf",          "proposed",    "PRF_KDF",    A + "/crypto_auth/asconprfv13/opt64",  KDF),
+    ("amac",             "baseline",    "AMAC",       CXOF,                                  LONG),
+    ("akdf",             "baseline",    "AKDF",       CXOF,                                  KDF),
+    ("mac_from_xof128",  "baseline",    "KEYED_HASH", XOF16,                                 LONG),
+    ("mac_from_hash256", "baseline",    "KEYED_HASH", A + "/crypto_hash/asconhash256/opt64", LONG),
+    ("prf_from_xof128",  "baseline",    "KEYED_HASH", A + "/crypto_hash/asconxof128/opt64",  LONG),
+    ("cxof128",          "standard",    "CXOF",       CXOF,                                  LONG),
+    ("cxof128_ref",      "reference",   "CXOF",       A + "/crypto_cxof/asconcxof128/ref",   LONG),
+    ("hash256_bare",     "lower bound", "HASH",       A + "/crypto_hash/asconhash256/opt64", LONG),
+    ("xof128_bare",      "lower bound", "HASH",       A + "/crypto_hash/asconxof128/opt64",  LONG),
 ]
 
 # Official answer checks: name, Ascon folder, the designers' test program,
@@ -96,7 +100,9 @@ OFFICIAL = [
      A + "/crypto_hash/asconhash256/LWC_HASH_KAT_128_256.txt", []),
     ("Ascon-XOF128", A + "/crypto_hash/asconxof128/opt64", "genkat_hash.c",
      A + "/crypto_hash/asconxof128/LWC_XOF_KAT_128_512.txt", []),
-    ("Ascon-CXOF128 (opt64)", CXOF, "genkat_cxof.c",
+    ("Ascon-CXOF128 (opt64, Kerry)", CXOF, "genkat_cxof.c",
+     A + "/crypto_cxof/asconcxof128/LWC_CXOF_KAT_128_512.txt", []),
+    ("Ascon-CXOF128 (reference)", A + "/crypto_cxof/asconcxof128/ref", "genkat_cxof.c",
      A + "/crypto_cxof/asconcxof128/LWC_CXOF_KAT_128_512.txt", []),
 ]
 
@@ -126,7 +132,8 @@ SIZE_TARGETS = [
     ("Ascon-PrfShort", A + "/crypto_auth/asconprfsv13/opt64"),
     ("Ascon-Hash256", A + "/crypto_hash/asconhash256/opt64"),
     ("Ascon-XOF128", A + "/crypto_hash/asconxof128/opt64"),
-    ("Ascon-CXOF128 (opt64)", CXOF),
+    ("Ascon-CXOF128 (opt64, Kerry)", CXOF),
+    ("Ascon-CXOF128 (reference)", A + "/crypto_cxof/asconcxof128/ref"),
 ]
 
 
@@ -160,7 +167,7 @@ def empty_folder(path):
 
 
 def simple_name(text):
-    """Turn a name like 'Ascon-CXOF128 (opt64)' into a folder name:
+    """Turn a name like 'Ascon-CXOF128 (reference)' into a folder name:
     every character that is not a letter or a digit becomes '_'."""
     name = ""
     for ch in text:
@@ -189,7 +196,7 @@ def nominal_ghz(brand, cpuid_mhz):
                              r"HARDWARE\DESCRIPTION\System\CentralProcessor\0")
         mhz = winreg.QueryValueEx(key, "~MHz")[0]
         return mhz / 1000, "Windows registry"
-    except (ImportError, OSError):
+    except OSError:
         return None, "unknown - results in cycles only"
 
 
@@ -419,7 +426,7 @@ if __name__ == "__main__":
             print(folder, "is missing. Run  python make_variants.py  first.")
             sys.exit(1)
     if PILOT:
-        print("*** PILOT RUN: 5 repetitions, 2 or 3 sizes per program, saved in results_pilot ***\n")
+        print("*** PILOT RUN: 5 repetitions, 3 sizes, saved in results_pilot ***\n")
     machine_and_clock()
     build_programs()
     correctness()
