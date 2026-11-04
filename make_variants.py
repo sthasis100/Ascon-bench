@@ -9,10 +9,10 @@ make_variants.py  -  make the two Ascon folders the designers do not ship
 WHY
   1. Ascon-CXOF128 only comes as slow reference code ("ref"). Everything
      else we time is the fast "opt64" code, so timing CXOF128 as it is would
-     not be fair. Our NIST mentor, Kerry McKay, showed the fix: copy the
-     opt64 XOF128 folder and replace its hash.c with CXOF128's hash.c. The
-     speed comes from the permutation files, which both functions share;
-     hash.c only decides the order in which the data goes in.
+     not be fair. As suggested by our problem mentor, we copy the opt64
+     XOF128 folder and replace its hash.c with CXOF128's hash.c. The speed
+     comes from the permutation files, which both functions share; hash.c
+     only decides the order in which the data goes in.
   2. For a fair MAC baseline we need XOF128 to give 16 bytes, like
      Ascon-Mac. XOF128 may give any length, so we change one number.
 
@@ -55,7 +55,7 @@ def change_text(path, old, new):
         f.write(text)
 
 
-# 1. CXOF128 on the opt64 code: Kerry's recipe.
+# 1. CXOF128 on the opt64 code, as suggested by our problem mentor.
 copy_folder(XOF_FOLDER, CXOF_OUT)
 shutil.copy(CXOF_HASH_C, CXOF_OUT + "/hash.c")
 # The one small fix: CXOF128's hash.c calls the 12-round permutation

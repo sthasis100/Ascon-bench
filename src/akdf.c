@@ -6,7 +6,7 @@
  * akdf.c  -  AKDF, NIST's planned key-derivation function, built on CXOF128
  *
  * WHAT IT IS
- *   Kerry McKay's slides define AKDF as
+ *   NIST's planned AKDF is defined as
  *       KOUT = CXOF128( bytepad(K, 32) || X || right_encode(L),  L,  "AKDF" || S )
  *     K   the key
  *     X   secret key data
@@ -31,7 +31,7 @@
 #include <string.h>
 #include "crypto_cxof.h"   /* the designers' CXOF128: crypto_cxof() */
 
-#define MAX_KEY 32         /* the slides allow keys of up to 256 bits */
+#define MAX_KEY 32         /* keys of up to 256 bits                  */
 #define MAX_X 64           /* enough key data for our examples        */
 #define MAX_S 64           /* enough label for our examples           */
 
