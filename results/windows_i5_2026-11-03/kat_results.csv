@@ -1,0 +1,10 @@
+check,result,detail
+Ascon-Mac,PASS,LWC_MAC_KAT_128_128.txt: identical
+Ascon-Prf,PASS,LWC_PRF_KAT_128_512.txt: identical
+Ascon-PrfShort,PASS,LWC_PRFS_KAT_128_128.txt: identical
+Ascon-Hash256,PASS,LWC_HASH_KAT_128_256.txt: identical
+Ascon-XOF128,PASS,LWC_XOF_KAT_128_512.txt: identical
+"Ascon-CXOF128 (opt64, Kerry)",PASS,LWC_CXOF_KAT_128_512.txt: identical
+Ascon-CXOF128 (reference),PASS,LWC_CXOF_KAT_128_512.txt: identical
+"Ascon-XOF128, 16-byte variant",PASS,1025 of 1025 = first 16 bytes of the official answers
+"AMAC, AKDF, Prf on AKDF inputs",PASS,all 9 answers match

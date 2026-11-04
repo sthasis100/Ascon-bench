@@ -1,0 +1,114 @@
+comparison,group,size,A,B,A_cycles,B_cycles,speedup,every_A_run_faster,note
+Ascon-Mac vs AMAC,MAC,1,ascon_mac,amac,389.83251953125,892.7885360717773,2.2901848648883925,True,NIST's planned MAC (Kerry's slides); both give a 16-byte tag
+Ascon-Mac vs AMAC,MAC,8,ascon_mac,amac,216.36489868164062,996.7085571289062,4.606609312333345,True,NIST's planned MAC (Kerry's slides); both give a 16-byte tag
+Ascon-Mac vs AMAC,MAC,16,ascon_mac,amac,219.00408935546875,1106.0690307617188,5.050449213148901,True,NIST's planned MAC (Kerry's slides); both give a 16-byte tag
+Ascon-Mac vs AMAC,MAC,32,ascon_mac,amac,329.185546875,1320.35009765625,4.010960111069578,True,NIST's planned MAC (Kerry's slides); both give a 16-byte tag
+Ascon-Mac vs AMAC,MAC,64,ascon_mac,amac,442.4794921875,1754.701904296875,3.965611819933392,True,NIST's planned MAC (Kerry's slides); both give a 16-byte tag
+Ascon-Mac vs AMAC,MAC,128,ascon_mac,amac,671.080078125,2633.35595703125,3.9240562234969865,True,NIST's planned MAC (Kerry's slides); both give a 16-byte tag
+Ascon-Mac vs AMAC,MAC,256,ascon_mac,amac,1124.607421875,4386.76171875,3.9007049334924164,True,NIST's planned MAC (Kerry's slides); both give a 16-byte tag
+Ascon-Mac vs AMAC,MAC,512,ascon_mac,amac,2047.68359375,7902.4609375,3.8592197357150897,True,NIST's planned MAC (Kerry's slides); both give a 16-byte tag
+Ascon-Mac vs AMAC,MAC,1024,ascon_mac,amac,3870.4296875,14722.8984375,3.80394416802075,True,NIST's planned MAC (Kerry's slides); both give a 16-byte tag
+Ascon-Mac vs AMAC,MAC,1536,ascon_mac,amac,5692.376470588235,21608.076470588232,3.7959675685953553,True,NIST's planned MAC (Kerry's slides); both give a 16-byte tag
+Ascon-Mac vs AMAC,MAC,4096,ascon_mac,amac,14785.203125,56036.71875,3.7900540341747924,True,NIST's planned MAC (Kerry's slides); both give a 16-byte tag
+Ascon-Mac vs AMAC,MAC,16384,ascon_mac,amac,58478.3125,220779.0,3.775399640678756,True,NIST's planned MAC (Kerry's slides); both give a 16-byte tag
+Ascon-Mac vs AMAC,MAC,65536,ascon_mac,amac,233418.25,886735.84375,3.798913939891161,True,NIST's planned MAC (Kerry's slides); both give a 16-byte tag
+Ascon-Mac vs MAC from XOF128,MAC,1,ascon_mac,mac_from_xof128,389.83251953125,446.29427337646484,1.144835925728071,True,the cheapest standardized way to make a 16-byte MAC
+Ascon-Mac vs MAC from XOF128,MAC,8,ascon_mac,mac_from_xof128,216.36489868164062,545.7658996582031,2.522432718909934,True,the cheapest standardized way to make a 16-byte MAC
+Ascon-Mac vs MAC from XOF128,MAC,16,ascon_mac,mac_from_xof128,219.00408935546875,666.4725341796875,3.0431967555543045,True,the cheapest standardized way to make a 16-byte MAC
+Ascon-Mac vs MAC from XOF128,MAC,32,ascon_mac,mac_from_xof128,329.185546875,871.5338134765625,2.647545804334799,True,the cheapest standardized way to make a 16-byte MAC
+Ascon-Mac vs MAC from XOF128,MAC,64,ascon_mac,mac_from_xof128,442.4794921875,1307.462646484375,2.954854788909267,True,the cheapest standardized way to make a 16-byte MAC
+Ascon-Mac vs MAC from XOF128,MAC,128,ascon_mac,mac_from_xof128,671.080078125,2235.14013671875,3.330660840005472,True,the cheapest standardized way to make a 16-byte MAC
+Ascon-Mac vs MAC from XOF128,MAC,256,ascon_mac,mac_from_xof128,1124.607421875,4136.8857421875,3.6785154194432432,True,the cheapest standardized way to make a 16-byte MAC
+Ascon-Mac vs MAC from XOF128,MAC,512,ascon_mac,mac_from_xof128,2047.68359375,8018.8046875,3.9160369853893595,True,the cheapest standardized way to make a 16-byte MAC
+Ascon-Mac vs MAC from XOF128,MAC,1024,ascon_mac,mac_from_xof128,3870.4296875,15575.99609375,4.024358366218221,True,the cheapest standardized way to make a 16-byte MAC
+Ascon-Mac vs MAC from XOF128,MAC,1536,ascon_mac,mac_from_xof128,5692.376470588235,23752.54705882353,4.172694336284649,True,the cheapest standardized way to make a 16-byte MAC
+Ascon-Mac vs MAC from XOF128,MAC,4096,ascon_mac,mac_from_xof128,14785.203125,62533.59375,4.229471399298074,True,the cheapest standardized way to make a 16-byte MAC
+Ascon-Mac vs MAC from XOF128,MAC,16384,ascon_mac,mac_from_xof128,58478.3125,248837.03125,4.255201981931336,True,the cheapest standardized way to make a 16-byte MAC
+Ascon-Mac vs MAC from XOF128,MAC,65536,ascon_mac,mac_from_xof128,233418.25,999521.75,4.282106262042492,True,the cheapest standardized way to make a 16-byte MAC
+Ascon-Mac vs MAC from Hash256,MAC,1,ascon_mac,mac_from_hash256,389.83251953125,672.878963470459,1.7260719148816912,True,the proposal's baseline; Hash256 always gives 32 bytes
+Ascon-Mac vs MAC from Hash256,MAC,8,ascon_mac,mac_from_hash256,216.36489868164062,781.0902099609375,3.610059740375142,True,the proposal's baseline; Hash256 always gives 32 bytes
+Ascon-Mac vs MAC from Hash256,MAC,16,ascon_mac,mac_from_hash256,219.00408935546875,880.1651611328125,4.018943955444611,True,the proposal's baseline; Hash256 always gives 32 bytes
+Ascon-Mac vs MAC from Hash256,MAC,32,ascon_mac,mac_from_hash256,329.185546875,1096.9462890625,3.3323039224411573,True,the proposal's baseline; Hash256 always gives 32 bytes
+Ascon-Mac vs MAC from Hash256,MAC,64,ascon_mac,mac_from_hash256,442.4794921875,1560.1845703125,3.5260042507266625,True,the proposal's baseline; Hash256 always gives 32 bytes
+Ascon-Mac vs MAC from Hash256,MAC,128,ascon_mac,mac_from_hash256,671.080078125,2458.91259765625,3.664112045355988,True,the proposal's baseline; Hash256 always gives 32 bytes
+Ascon-Mac vs MAC from Hash256,MAC,256,ascon_mac,mac_from_hash256,1124.607421875,4267.2958984375,3.794476023751344,True,the proposal's baseline; Hash256 always gives 32 bytes
+Ascon-Mac vs MAC from Hash256,MAC,512,ascon_mac,mac_from_hash256,2047.68359375,7876.458984375,3.8465215077250017,True,the proposal's baseline; Hash256 always gives 32 bytes
+Ascon-Mac vs MAC from Hash256,MAC,1024,ascon_mac,mac_from_hash256,3870.4296875,15018.921875,3.880427520361717,True,the proposal's baseline; Hash256 always gives 32 bytes
+Ascon-Mac vs MAC from Hash256,MAC,1536,ascon_mac,mac_from_hash256,5692.376470588235,22210.49411764706,3.9017964170862167,True,the proposal's baseline; Hash256 always gives 32 bytes
+Ascon-Mac vs MAC from Hash256,MAC,4096,ascon_mac,mac_from_hash256,14785.203125,58152.8125,3.933176433786736,True,the proposal's baseline; Hash256 always gives 32 bytes
+Ascon-Mac vs MAC from Hash256,MAC,16384,ascon_mac,mac_from_hash256,58478.3125,231176.9375,3.953208080346026,True,the proposal's baseline; Hash256 always gives 32 bytes
+Ascon-Mac vs MAC from Hash256,MAC,65536,ascon_mac,mac_from_hash256,233418.25,927962.15625,3.9755338592847815,True,the proposal's baseline; Hash256 always gives 32 bytes
+Ascon-Mac vs bare Hash256,MAC,1,ascon_mac,hash256_bare,389.83251953125,452.2983627319336,1.160237640707335,True,lower bound only: a hash with no key
+Ascon-Mac vs bare Hash256,MAC,8,ascon_mac,hash256_bare,216.36489868164062,544.5989990234375,2.5170395121473037,True,lower bound only: a hash with no key
+Ascon-Mac vs bare Hash256,MAC,16,ascon_mac,hash256_bare,219.00408935546875,648.1604614257812,2.9595815463232857,True,lower bound only: a hash with no key
+Ascon-Mac vs bare Hash256,MAC,32,ascon_mac,hash256_bare,329.185546875,861.400634765625,2.6167632295615957,True,lower bound only: a hash with no key
+Ascon-Mac vs bare Hash256,MAC,64,ascon_mac,hash256_bare,442.4794921875,1298.29150390625,2.9341280823837614,True,lower bound only: a hash with no key
+Ascon-Mac vs bare Hash256,MAC,128,ascon_mac,hash256_bare,671.080078125,2173.56298828125,3.2389025678637227,True,lower bound only: a hash with no key
+Ascon-Mac vs bare Hash256,MAC,256,ascon_mac,hash256_bare,1124.607421875,3927.4814453125,3.4923132898806704,True,lower bound only: a hash with no key
+Ascon-Mac vs bare Hash256,MAC,512,ascon_mac,hash256_bare,2047.68359375,7423.783203125,3.625454257573821,True,lower bound only: a hash with no key
+Ascon-Mac vs bare Hash256,MAC,1024,ascon_mac,hash256_bare,3870.4296875,14422.328125,3.726286043014442,True,lower bound only: a hash with no key
+Ascon-Mac vs bare Hash256,MAC,1536,ascon_mac,hash256_bare,5692.376470588235,21432.5,3.7651234261716393,True,lower bound only: a hash with no key
+Ascon-Mac vs bare Hash256,MAC,4096,ascon_mac,hash256_bare,14785.203125,56413.875,3.815563068228053,True,lower bound only: a hash with no key
+Ascon-Mac vs bare Hash256,MAC,16384,ascon_mac,hash256_bare,58478.3125,224430.5,3.8378415929837235,True,lower bound only: a hash with no key
+Ascon-Mac vs bare Hash256,MAC,65536,ascon_mac,hash256_bare,233418.25,900793.65625,3.8591397898407687,True,lower bound only: a hash with no key
+Ascon-Prf vs PRF from XOF128,PRF,1,ascon_prf,prf_from_xof128,552.5213737487793,1095.6297187805176,1.9829635030167703,True,"both keyed, both give 64 bytes"
+Ascon-Prf vs PRF from XOF128,PRF,8,ascon_prf,prf_from_xof128,539.3177490234375,2044.891845703125,3.791627198262779,True,"both keyed, both give 64 bytes"
+Ascon-Prf vs PRF from XOF128,PRF,16,ascon_prf,prf_from_xof128,538.6004028320312,2192.4002075195312,4.070550627128395,True,"both keyed, both give 64 bytes"
+Ascon-Prf vs PRF from XOF128,PRF,32,ascon_prf,prf_from_xof128,649.314208984375,2584.400634765625,3.9802003390746923,True,"both keyed, both give 64 bytes"
+Ascon-Prf vs PRF from XOF128,PRF,64,ascon_prf,prf_from_xof128,762.981689453125,1949.166259765625,2.55466977348134,True,"both keyed, both give 64 bytes"
+Ascon-Prf vs PRF from XOF128,PRF,128,ascon_prf,prf_from_xof128,992.52001953125,2821.8525390625,2.8431190137557247,True,"both keyed, both give 64 bytes"
+Ascon-Prf vs PRF from XOF128,PRF,256,ascon_prf,prf_from_xof128,1451.203125,4570.6181640625,3.149537156669574,True,"both keyed, both give 64 bytes"
+Ascon-Prf vs PRF from XOF128,PRF,512,ascon_prf,prf_from_xof128,2393.49609375,8071.423828125,3.372231878381356,True,"both keyed, both give 64 bytes"
+Ascon-Prf vs PRF from XOF128,PRF,1024,ascon_prf,prf_from_xof128,4240.84375,15077.5625,3.5553213909378294,True,"both keyed, both give 64 bytes"
+Ascon-Prf vs PRF from XOF128,PRF,1536,ascon_prf,prf_from_xof128,6079.25294117647,22095.86470588235,3.6346348670937703,True,"both keyed, both give 64 bytes"
+Ascon-Prf vs PRF from XOF128,PRF,4096,ascon_prf,prf_from_xof128,15292.46875,57090.203125,3.733223461712158,True,"both keyed, both give 64 bytes"
+Ascon-Prf vs PRF from XOF128,PRF,16384,ascon_prf,prf_from_xof128,58886.3125,229774.125,3.9019954764530382,True,"both keyed, both give 64 bytes"
+Ascon-Prf vs PRF from XOF128,PRF,65536,ascon_prf,prf_from_xof128,232655.03125,902268.53125,3.8781389183905732,True,"both keyed, both give 64 bytes"
+Ascon-Prf vs bare XOF128,PRF,1,ascon_prf,xof128_bare,552.5213737487793,890.9398765563965,1.6124984822062096,True,lower bound only: an XOF with no key
+Ascon-Prf vs bare XOF128,PRF,8,ascon_prf,xof128_bare,539.3177490234375,986.4212036132812,1.829016763122353,True,lower bound only: an XOF with no key
+Ascon-Prf vs bare XOF128,PRF,16,ascon_prf,xof128_bare,538.6004028320312,1087.2598876953125,2.018676335885302,True,lower bound only: an XOF with no key
+Ascon-Prf vs bare XOF128,PRF,32,ascon_prf,xof128_bare,649.314208984375,1284.591796875,1.9783823903750615,True,lower bound only: an XOF with no key
+Ascon-Prf vs bare XOF128,PRF,64,ascon_prf,xof128_bare,762.981689453125,1717.237060546875,2.250692361670858,True,lower bound only: an XOF with no key
+Ascon-Prf vs bare XOF128,PRF,128,ascon_prf,xof128_bare,992.52001953125,2591.30810546875,2.610837116104298,True,lower bound only: an XOF with no key
+Ascon-Prf vs bare XOF128,PRF,256,ascon_prf,xof128_bare,1451.203125,4340.15234375,2.9907269829990204,True,lower bound only: an XOF with no key
+Ascon-Prf vs bare XOF128,PRF,512,ascon_prf,xof128_bare,2393.49609375,7843.603515625,3.277048805764319,True,lower bound only: an XOF with no key
+Ascon-Prf vs bare XOF128,PRF,1024,ascon_prf,xof128_bare,4240.84375,14856.953125,3.5033012298554973,True,lower bound only: an XOF with no key
+Ascon-Prf vs bare XOF128,PRF,1536,ascon_prf,xof128_bare,6079.25294117647,21868.229411764703,3.5971902507370777,True,lower bound only: an XOF with no key
+Ascon-Prf vs bare XOF128,PRF,4096,ascon_prf,xof128_bare,15292.46875,56879.84375,3.7194677118434525,True,lower bound only: an XOF with no key
+Ascon-Prf vs bare XOF128,PRF,16384,ascon_prf,xof128_bare,58886.3125,224904.6875,3.819303297349448,True,lower bound only: an XOF with no key
+Ascon-Prf vs bare XOF128,PRF,65536,ascon_prf,xof128_bare,232655.03125,906749.78125,3.8974002684500295,True,lower bound only: an XOF with no key
+Ascon-PrfShort vs Ascon-Mac,PrfShort,1,ascon_prfshort,ascon_mac,142.74552154541016,389.83251953125,2.7309614712307217,True,messages up to 16 bytes
+Ascon-PrfShort vs Ascon-Mac,PrfShort,8,ascon_prfshort,ascon_mac,129.10943603515625,216.36489868164062,1.6758256044331639,True,messages up to 16 bytes
+Ascon-PrfShort vs Ascon-Mac,PrfShort,16,ascon_prfshort,ascon_mac,129.33721923828125,219.00408935546875,1.6932797120988967,True,messages up to 16 bytes
+Ascon-PrfShort vs AMAC,PrfShort,1,ascon_prfshort,amac,142.74552154541016,892.7885360717773,6.254406628005936,True,messages up to 16 bytes
+Ascon-PrfShort vs AMAC,PrfShort,8,ascon_prfshort,amac,129.10943603515625,996.7085571289062,7.719873835228468,True,messages up to 16 bytes
+Ascon-PrfShort vs AMAC,PrfShort,16,ascon_prfshort,amac,129.33721923828125,1106.0690307617188,8.55182318961087,True,messages up to 16 bytes
+Ascon-Prf vs AKDF,KDF,16,prf_kdf,akdf,247.14544677734375,1487.9356079101562,6.020485618133418,True,"same key, X, label and key length (Kerry's AKDF); size = key length"
+Ascon-Prf vs AKDF,KDF,32,prf_kdf,akdf,355.742431640625,1739.2259521484375,4.889003384070369,True,"same key, X, label and key length (Kerry's AKDF); size = key length"
+Ascon-Prf vs AKDF,KDF,64,prf_kdf,akdf,575.148681640625,2235.357177734375,3.8865727230008886,True,"same key, X, label and key length (Kerry's AKDF); size = key length"
+CXOF128: opt64 (Kerry) vs reference,CXOF,1,cxof128,cxof128_ref,1232.8753547668457,1410.2903594970703,1.1439034400714225,True,Kerry's recipe against the designers' reference code
+CXOF128: opt64 (Kerry) vs reference,CXOF,8,cxof128,cxof128_ref,1318.7979736328125,1529.1423645019531,1.1594970534339826,True,Kerry's recipe against the designers' reference code
+CXOF128: opt64 (Kerry) vs reference,CXOF,16,cxof128,cxof128_ref,1424.2647094726562,1620.4349365234375,1.1377343872568566,True,Kerry's recipe against the designers' reference code
+CXOF128: opt64 (Kerry) vs reference,CXOF,32,cxof128,cxof128_ref,1641.251220703125,1879.3004150390625,1.1450412900433093,True,Kerry's recipe against the designers' reference code
+CXOF128: opt64 (Kerry) vs reference,CXOF,64,cxof128,cxof128_ref,2053.158203125,2357.977783203125,1.1484637567695348,True,Kerry's recipe against the designers' reference code
+CXOF128: opt64 (Kerry) vs reference,CXOF,128,cxof128,cxof128_ref,2901.76025390625,3376.29931640625,1.1635348963999324,True,Kerry's recipe against the designers' reference code
+CXOF128: opt64 (Kerry) vs reference,CXOF,256,cxof128,cxof128_ref,4597.806640625,5203.6396484375,1.1317656559237441,False,Kerry's recipe against the designers' reference code
+CXOF128: opt64 (Kerry) vs reference,CXOF,512,cxof128,cxof128_ref,7990.89453125,9149.017578125,1.1449303381925424,True,Kerry's recipe against the designers' reference code
+CXOF128: opt64 (Kerry) vs reference,CXOF,1024,cxof128,cxof128_ref,14680.95703125,16469.83203125,1.1218500262750029,True,Kerry's recipe against the designers' reference code
+CXOF128: opt64 (Kerry) vs reference,CXOF,1536,cxof128,cxof128_ref,21730.882352941175,23866.11176470588,1.0982578331190365,False,Kerry's recipe against the designers' reference code
+CXOF128: opt64 (Kerry) vs reference,CXOF,4096,cxof128,cxof128_ref,56292.25,61419.21875,1.0910777016374367,True,Kerry's recipe against the designers' reference code
+CXOF128: opt64 (Kerry) vs reference,CXOF,16384,cxof128,cxof128_ref,221676.90625,243282.8125,1.0974657514645823,True,Kerry's recipe against the designers' reference code
+CXOF128: opt64 (Kerry) vs reference,CXOF,65536,cxof128,cxof128_ref,885328.71875,982038.375,1.1092358738645063,True,Kerry's recipe against the designers' reference code
+XOF128 vs CXOF128,CXOF,1,xof128_bare,cxof128,890.9398765563965,1232.8753547668457,1.3837918665534157,True,what CXOF128's customization string costs (both give 64 bytes)
+XOF128 vs CXOF128,CXOF,8,xof128_bare,cxof128,986.4212036132812,1318.7979736328125,1.3369521749958622,True,what CXOF128's customization string costs (both give 64 bytes)
+XOF128 vs CXOF128,CXOF,16,xof128_bare,cxof128,1087.2598876953125,1424.2647094726562,1.3099579278066626,True,what CXOF128's customization string costs (both give 64 bytes)
+XOF128 vs CXOF128,CXOF,32,xof128_bare,cxof128,1284.591796875,1641.251220703125,1.2776441704639272,True,what CXOF128's customization string costs (both give 64 bytes)
+XOF128 vs CXOF128,CXOF,64,xof128_bare,cxof128,1717.237060546875,2053.158203125,1.195617221579848,True,what CXOF128's customization string costs (both give 64 bytes)
+XOF128 vs CXOF128,CXOF,128,xof128_bare,cxof128,2591.30810546875,2901.76025390625,1.1198051855672104,True,what CXOF128's customization string costs (both give 64 bytes)
+XOF128 vs CXOF128,CXOF,256,xof128_bare,cxof128,4340.15234375,4597.806640625,1.0593652656561774,False,what CXOF128's customization string costs (both give 64 bytes)
+XOF128 vs CXOF128,CXOF,512,xof128_bare,cxof128,7843.603515625,7990.89453125,1.0187784881440765,False,what CXOF128's customization string costs (both give 64 bytes)
+XOF128 vs CXOF128,CXOF,1024,xof128_bare,cxof128,14856.953125,14680.95703125,0.9881539577954346,False,what CXOF128's customization string costs (both give 64 bytes)
+XOF128 vs CXOF128,CXOF,1536,xof128_bare,cxof128,21868.229411764703,21730.882352941175,0.9937193333654329,False,what CXOF128's customization string costs (both give 64 bytes)
+XOF128 vs CXOF128,CXOF,4096,xof128_bare,cxof128,56879.84375,56292.25,0.9896695611088067,False,what CXOF128's customization string costs (both give 64 bytes)
+XOF128 vs CXOF128,CXOF,16384,xof128_bare,cxof128,224904.6875,221676.90625,0.9856482259846184,False,what CXOF128's customization string costs (both give 64 bytes)
+XOF128 vs CXOF128,CXOF,65536,xof128_bare,cxof128,906749.78125,885328.71875,0.9763759937493781,False,what CXOF128's customization string costs (both give 64 bytes)
