@@ -1,8 +1,0 @@
-function,text_bytes_O3,text_bytes_Os
-Ascon-Mac,6700,8344
-Ascon-Prf,17196,8344
-Ascon-PrfShort,3160,2376
-Ascon-Hash256,6676,6036
-Ascon-XOF128,6676,6036
-"Ascon-CXOF128 (opt64, Kerry)",12600,11944
-Ascon-CXOF128 (reference),13484,1136

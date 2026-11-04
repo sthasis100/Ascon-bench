@@ -4,7 +4,7 @@
 INSuRE Team 4 supplemental validation experiment. The base benchmark programs
 (src/bench.c and src/bench_v2.c) are derived from Team 4's V1 framework.
 This script evaluates the timing modification; it does not replace the
-framework's correctness checks or its 13-program benchmarking study.
+framework's correctness checks or its main benchmarking study.
 
 Requires two previously compiled executables, both from src/bench_v2.c:
   build/mac_v2_unfenced.exe

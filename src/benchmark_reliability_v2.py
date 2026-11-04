@@ -5,9 +5,9 @@ Standard-library only. Non-destructive: reads V1 raw CSV files and writes a
 separate screening report. It does not clean, replace, or remeasure data.
 
 Usage (from repository root):
-  python src/benchmark_reliability_v2.py results/windows_i5_2026-11-03/raw_runs.csv \
-    --diagnostic results/windows_i5_2026-11-03/diagnostics/ascon_mac_1byte_recheck_01.csv \
-    --output results/windows_i5_2026-11-03/v2_analysis
+  python src/benchmark_reliability_v2.py results/raw_runs.csv \
+    --diagnostic results/diagnostics/ascon_mac_1byte_recheck_01.csv \
+    --output results/v2_analysis
 
 Flags are screening heuristics, not proof of OS interference or an invalid run.
 Repeat batches are not independent CPU/session replications; do not interpret
