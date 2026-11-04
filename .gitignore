@@ -1,4 +1,4 @@
-# The designers' code: a git submodule pinned to commit 446347f (see .gitmodules), never edited
+# The designers' code: cloned separately (Build Guide, Part 3.1), never part of our repository
 ascon-c/
 # Made by our scripts: never edit or commit these
 build/
