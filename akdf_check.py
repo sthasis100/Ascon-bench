@@ -40,7 +40,7 @@ def bytepad(data, w):
 
 
 def akdf(K, X, out_len, S):
-    """Kerry's AKDF: CXOF128(bytepad(K, 32) || X || right_encode(L), L, "AKDF" || S).
+    """NIST's planned AKDF: CXOF128(bytepad(K, 32) || X || right_encode(L), L, "AKDF" || S).
     L is counted in bits, as in KMAC."""
     message = bytepad(K, 32) + X + right_encode(out_len * 8)
     return ascon.ascon_hash(message, variant="Ascon-CXOF128", hashlength=out_len,

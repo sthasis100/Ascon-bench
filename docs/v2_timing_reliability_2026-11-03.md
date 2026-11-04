@@ -9,7 +9,7 @@
 
 Does adding `LFENCE` instruction ordering around `RDTSC` readings change the measured performance or repeatability of Ascon-Mac on this Windows computer? The purpose is to **evaluate**, not assume, that the fenced method is more reliable.
 
-The original 13-program benchmark, input-selection policy, known-answer tests, and `getcycles` cross-check remain the team's baseline methodology. This supplemental study isolates a timing-method variation for **Ascon-Mac only**.
+The team's main benchmark (9 programs), input-selection policy, known-answer tests, and `getcycles` cross-check remain the team's baseline methodology. This supplemental study isolates a timing-method variation for **Ascon-Mac only**.
 
 ## 2. Experimental setup and controlled variables
 
@@ -46,7 +46,7 @@ Each reported central value is the **median of eight session medians** for that 
 3. **Clock semantics matter.** An invariant TSC helps with clock stability, but these are TSC ticks, not necessarily executed CPU cycles. The nominal 2.4 GHz CPU label does not independently calibrate the TSC-to-time conversion.
 4. **Single device and function.** These results concern Ascon-Mac `opt64` on one Windows laptop. They do not establish reliability for every Ascon extension, input size, compiler, or operating system.
 5. **No inferential claim yet.** Eight process sessions per method are useful descriptive evidence but insufficient to claim statistically proven superiority. Any confidence intervals or formal tests should treat **process sessions**, rather than 30 within-session measurements, as the primary independent experimental units.
-6. **Earlier anomaly remains documented.** In the separate full 13-program Windows run, the 1-byte Ascon-Mac median was 389.83 ticks/call, while a targeted recheck measured 230.42 ticks/call. The initial full-run `getcycles` cross-check flagged a **68.39%** discrepancy at that point. Those original measurements are retained, not silently replaced by this supplemental experiment.
+6. **Earlier anomaly remains documented.** In an earlier full Windows run, made with the previous version of the framework, the 1-byte Ascon-Mac median was 389.83 ticks/call, while a targeted recheck measured 230.42 ticks/call. The initial full-run `getcycles` cross-check flagged a **68.39%** discrepancy at that point. Those original measurements are retained, not silently replaced by this supplemental experiment.
 
 ## 5. Reproduction and evidence
 
@@ -75,18 +75,18 @@ The runner intentionally refuses to overwrite `results/v2_timing_comparison/`; m
 **Source and artifacts:**
 
 - `src/bench.c` — original Team 4 timing framework; unchanged by this experiment.
-- `src/bench_v2.c` — derived source with a compile-time switch for fenced timing.
+- `src/bench_v2.c` — derived source with a compile-time switch for fenced timing. It has since been rebuilt on the final `src/bench.c` (the Ascon-Mac code path is unchanged); the source hash in the manifest refers to the version used for this experiment, in commit 72cc365.
 - `src/run_timing_comparison_v2.py` — alternated-session runner and descriptive summary.
 - `results/v2_timing_comparison/raw_timing_comparison.csv` — all 2,400 measurements.
 - `results/v2_timing_comparison/session_summary.csv` — 10 method/size summary rows.
 - `results/v2_timing_comparison/experiment_manifest.json` — protocol metadata and SHA-256 identifiers.
-- `results/windows_i5_2026-11-03/` — separate full V1 Windows dataset and its validation/diagnostics.
+- The earlier full V1 Windows dataset (previous framework version) and its validation/diagnostics are kept in the repository history (commit 01537f6); a re-run with the final framework will replace it.
 
 ## 6. Next research actions
 
 - Repeat the ABBA/BAAB experiment in another **separately preserved** run, recording power mode, background workload, and any available CPU telemetry; inspect whether the 8-byte session effect recurs.
 - Audit machine-code and timestamp ordering to confirm the fenced/unfenced binaries differ only in the intended code path, accounting for compiler-generated differences.
 - If extending statistical inference, compute paired-by-round contrasts and uncertainty at the **session/round level**, while keeping raw within-session values available.
-- Report V1 performance findings and supplemental V2 timing-reliability findings as **separate** results to Team 4 and Kerry McKay.
+- Report V1 performance findings and supplemental V2 timing-reliability findings as **separate** results to Team 4 and our problem mentor.
 
 **Current conclusion:** On this machine, adding LFENCE did not consistently reduce observed session-level timing variation. The 8-byte unfenced instability merits follow-up, but its cause is not established. The primary deliverable of this study is a reproducible investigation with preserved raw data and documented limitations.

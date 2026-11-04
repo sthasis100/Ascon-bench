@@ -7,7 +7,8 @@ This file is NOT part of the Ascon designers' repository (ascon-c).
 analyze.py  -  turn the raw measurements into statistics and comparisons
 
 THE METRICS
-  cycles per call   the main result: RDTSC counts CPU cycles
+  cycles per call   the main result, counted with RDTSC (the CPU's cycle
+                    counter, which ticks at a fixed rate: the nominal GHz)
   ns per call       cycles / nominal GHz - a conversion, not a second clock
   cycles per byte   cycles per call / bytes processed
   MB/s              bytes processed per second
@@ -83,28 +84,21 @@ summary.to_csv(RESULTS + "/summary.csv", index=False)
 # name, group, A (the proposed function), B (what it is compared with), note
 COMPARISONS = [
     ("Ascon-Mac vs AMAC", "MAC", "ascon_mac", "amac",
-     "NIST's planned MAC (Kerry's slides); both give a 16-byte tag"),
+     "NIST's planned MAC; both give a 16-byte tag"),
     ("Ascon-Mac vs MAC from XOF128", "MAC", "ascon_mac", "mac_from_xof128",
-     "the cheapest standardized way to make a 16-byte MAC"),
+     "the main comparison: a standard function giving 16 bytes, like Ascon-Mac"),
     ("Ascon-Mac vs MAC from Hash256", "MAC", "ascon_mac", "mac_from_hash256",
-     "the proposal's baseline; Hash256 always gives 32 bytes"),
-    ("Ascon-Mac vs bare Hash256", "MAC", "ascon_mac", "hash256_bare",
-     "lower bound only: a hash with no key"),
+     "the most obvious option today; Hash256 always gives 32 bytes"),
     ("Ascon-Prf vs PRF from XOF128", "PRF", "ascon_prf", "prf_from_xof128",
      "both keyed, both give 64 bytes"),
-    ("Ascon-Prf vs bare XOF128", "PRF", "ascon_prf", "xof128_bare",
-     "lower bound only: an XOF with no key"),
     ("Ascon-PrfShort vs Ascon-Mac", "PrfShort", "ascon_prfshort", "ascon_mac",
-     "messages up to 16 bytes"),
+     "messages up to 16 bytes; both give 16 bytes"),
+    ("Ascon-PrfShort vs MAC from XOF128", "PrfShort", "ascon_prfshort", "mac_from_xof128",
+     "messages up to 16 bytes; both give 16 bytes"),
     ("Ascon-PrfShort vs AMAC", "PrfShort", "ascon_prfshort", "amac",
-     "messages up to 16 bytes"),
+     "messages up to 16 bytes; both give 16 bytes"),
     ("Ascon-Prf vs AKDF", "KDF", "prf_kdf", "akdf",
-     "same key, X, label and key length (Kerry's AKDF); size = key length"),
-    # Two more rows about CXOF128 itself - not proposed-vs-standard:
-    ("CXOF128: opt64 (Kerry) vs reference", "CXOF", "cxof128", "cxof128_ref",
-     "Kerry's recipe against the designers' reference code"),
-    ("XOF128 vs CXOF128", "CXOF", "xof128_bare", "cxof128",
-     "what CXOF128's customization string costs (both give 64 bytes)"),
+     "NIST's planned KDF; same key, X, label and key length; size = key length"),
 ]
 
 rows = []
@@ -125,7 +119,6 @@ comp = pd.DataFrame(rows)
 comp.to_csv(RESULTS + "/comparisons.csv", index=False)
 
 # ----------------------------------------------------------------- headline
-main = comp[comp["group"] != "CXOF"]
 worst = summary.loc[summary["noise_pct"].idxmax()]
 print(len(raw), "measurements ->", len(summary), "summary rows ("
       + str(raw["target"].nunique()) + " programs)")
@@ -133,7 +126,7 @@ print("clock: RDTSC; nominal frequency", ghz, "GHz, used only to convert cycles 
 print(f"noise: median {summary['noise_pct'].median():.2f}%, worst {worst['noise_pct']:.2f}% "
       f"({worst['target']} at {int(worst['size'])} bytes)")
 print(f"comparisons where EVERY run of the proposed function was faster: "
-      f"{int(main['every_A_run_faster'].sum())} of {len(main)}")
+      f"{int(comp['every_A_run_faster'].sum())} of {len(comp)}")
 print("\nspeed-up (median), smallest to largest over the sizes measured:")
 for name, group, a, b, note in COMPARISONS:
     part = comp[comp["comparison"] == name]
