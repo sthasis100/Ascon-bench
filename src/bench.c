@@ -49,12 +49,9 @@
 #define KEY_LEN 16                    /* every keyed function: a 16-byte key */
 #define MAX_MSG 65536                 /* the longest message: 64 KB          */
 #define MAX_OUT 64                    /* the longest output: 64 bytes        */
-#define X_LEN 16                      /* AKDF's key data X: 16 bytes         */
-#define BENCH_LABEL "encryption key"  /* the label S: 14 bytes               */
-#define BENCH_LABEL_LEN 14
 
 static uint8_t key[KEY_LEN];          /* the key                              */
-static uint8_t msg[MAX_MSG];          /* the message (its first 16 bytes = X) */
+static uint8_t msg[MAX_MSG];          /* the message (for AKDF: X = its first 16 bytes) */
 static uint8_t out[MAX_OUT];          /* the result                           */
 
 /* Each mode's prepare() fills in these two, for the CSV line. */
@@ -74,7 +71,12 @@ static int out_len;                   /* output bytes */
    Examples: left_encode(32) = 01 20, and right_encode(128) = 80 01. */
 #include "crypto_cxof.h"
 
-static uint8_t fmt[32 + MAX_MSG + 9];  /* the formatted input          */
+#define X_LEN 16                      /* AKDF's key data X: 16 bytes */
+#define BENCH_LABEL "encryption key"  /* the label S: 14 bytes       */
+#define BENCH_LABEL_LEN 14
+
+/* bytepad(K, 32) is 32 bytes, then X, then right_encode(L): at most 9 */
+static uint8_t fmt[32 + X_LEN + 9];    /* the formatted input          */
 static unsigned long long fmt_len;     /* how many bytes of fmt[] used */
 
 /* How many bytes does it take to write x? (always at least 1) */

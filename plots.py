@@ -168,9 +168,6 @@ panels("noise_pct", "noise (% of the mean)",
 code_size = pd.read_csv(RESULTS + "/code_size.csv")
 NAMES = {"Ascon-Mac": "Ascon-Mac", "Ascon-Prf": "Ascon-Prf", "Ascon-PrfShort": "Ascon-PrfShort",
          "Ascon-CXOF128 (opt64)": "Ascon-CXOF128 opt64\n(used by AKDF)"}
-# (older results files may add a note after "opt64"; the label shown is ours)
-code_size["function"] = code_size["function"].where(
-    ~code_size["function"].str.startswith("Ascon-CXOF128 (opt64"), "Ascon-CXOF128 (opt64)")
 code_size = code_size[code_size["function"].isin(list(NAMES))]
 fig, ax = plt.subplots(figsize=(8, 4.5))
 width = 0.38
