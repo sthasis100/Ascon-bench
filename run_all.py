@@ -16,7 +16,7 @@ WHAT IT DOES
      order. Every single repetition is saved; nothing is averaged here.
 
 WHY ONE SCRIPT
-  About 100 commands, always in the same order with the same flags.
+  Dozens of commands, always in the same order with the same flags.
   Typing them by hand every run is where mistakes creep in.
 
 RUN (Command Prompt, in the project folder)
@@ -46,14 +46,13 @@ else:
 
 BUILD = "build"
 A = "ascon-c"                                 # the designers' code
-CXOF = "variants/asconcxof128_opt64"          # made by make_variants.py
-XOF16 = "variants/asconxof128_out16"          # made by make_variants.py
+CXOF = "variants/asconcxof128_opt64"          # made by make_variants.py (for AKDF)
 
 # The SAME flags for every benchmark build. Never add -flto: it lets the
 # compiler see inside the Ascon code and delete or move the work we time.
 CFLAGS = ["-O3", "-march=native"]
 
-# Sizes in bytes. For the two key-derivation programs: the output length.
+# Sizes in bytes. For AKDF: the length of the new key (the output).
 if PILOT:
     LONG = [1, 16, 1536]
     SHORT = [1, 16]
@@ -68,17 +67,12 @@ CORE = 2
 if os.cpu_count() is None or os.cpu_count() <= 2:
     CORE = 0
 
-# The 9 benchmark programs: name, role, mode, Ascon folder, sizes.
+# The 4 benchmark programs: name, mode, Ascon folder, sizes.
 TARGETS = [
-    ("ascon_mac",        "proposed", "AUTH",       A + "/crypto_auth/asconmacv13/opt64",  LONG),
-    ("ascon_prf",        "proposed", "AUTH",       A + "/crypto_auth/asconprfv13/opt64",  LONG),
-    ("ascon_prfshort",   "proposed", "AUTH",       A + "/crypto_auth/asconprfsv13/opt64", SHORT),
-    ("prf_kdf",          "proposed", "PRF_KDF",    A + "/crypto_auth/asconprfv13/opt64",  KDF),
-    ("amac",             "baseline", "AMAC",       CXOF,                                  LONG),
-    ("akdf",             "baseline", "AKDF",       CXOF,                                  KDF),
-    ("mac_from_xof128",  "baseline", "KEYED_HASH", XOF16,                                 LONG),
-    ("mac_from_hash256", "baseline", "KEYED_HASH", A + "/crypto_hash/asconhash256/opt64", LONG),
-    ("prf_from_xof128",  "baseline", "KEYED_HASH", A + "/crypto_hash/asconxof128/opt64",  LONG),
+    ("ascon_mac",      "AUTH", A + "/crypto_auth/asconmacv13/opt64",  LONG),
+    ("ascon_prf",      "AUTH", A + "/crypto_auth/asconprfv13/opt64",  LONG),
+    ("ascon_prfshort", "AUTH", A + "/crypto_auth/asconprfsv13/opt64", SHORT),
+    ("akdf",           "AKDF", CXOF,                                  KDF),
 ]
 
 # Official answer checks: name, Ascon folder, the designers' test program,
@@ -92,40 +86,28 @@ OFFICIAL = [
     # to stop at 16 - exactly as the designers' own CMake build does.
     ("Ascon-PrfShort", A + "/crypto_auth/asconprfsv13/opt64", "genkat_auth.c",
      A + "/crypto_auth/asconprfsv13/LWC_PRFS_KAT_128_128.txt", ["-DMAX_MESSAGE_LENGTH=16"]),
-    ("Ascon-Hash256", A + "/crypto_hash/asconhash256/opt64", "genkat_hash.c",
-     A + "/crypto_hash/asconhash256/LWC_HASH_KAT_128_256.txt", []),
-    ("Ascon-XOF128", A + "/crypto_hash/asconxof128/opt64", "genkat_hash.c",
-     A + "/crypto_hash/asconxof128/LWC_XOF_KAT_128_512.txt", []),
+    # Our fast CXOF128 (for AKDF) against CXOF128's official answers.
     ("Ascon-CXOF128 (opt64)", CXOF, "genkat_cxof.c",
      A + "/crypto_cxof/asconcxof128/LWC_CXOF_KAT_128_512.txt", []),
 ]
 
-# AMAC and AKDF are new, so NIST has no answer files for them yet. These
-# are the answers our programs must give, for each size. We confirmed every
-# one independently: AMAC and AKDF against a separate Python version built on
-# the designers' own Python Ascon (pyascon), and prf_kdf against the
-# designers' C reference Ascon-Prf.
+# AKDF is new, so NIST has no answer file for it yet. These are the answers
+# our program must give, for each new key length. We confirmed every one
+# independently, against a separate Python version built on the designers'
+# own Python Ascon (pyascon).
 OUR_ANSWERS = {
-    "amac": {1: "18C829A4DA3B2924D536DCFA45ECD935",
-             16: "40735C277831CC05F8FA8F2B88C42918",
-             1536: "A40E12013E4D34D7D3F6257F42702BE3"},
     "akdf": {16: "A6317D6160F7D50B83BCBDD2B3DCA01E",
              32: "D84C9BCE206AFB0A106B1DDC68A31FD46EA41731C9ABFA29BD3D887DE934762F",
              64: "14EDD318D0CF9F7D1B78F82CC72B476C045CC75E5516B2A427C28A3E4B2B69C2"
                  "D6735A467D558AAF8E54D18F0ED15AEE60933FDB26989172994364F7F7E3A211"},
-    "prf_kdf": {16: "4D6999F681A657D7D5194B12A0B0D2FF",
-                32: "4D6999F681A657D7D5194B12A0B0D2FF9B4299CE9038F976BABA40D0BD63D7C0",
-                64: "4D6999F681A657D7D5194B12A0B0D2FF9B4299CE9038F976BABA40D0BD63D7C0"
-                    "3332F64E4028F9EAD6C903E5739426D333886F10D10A556F5D179E3284B124B3"},
 }
 
-# Code size is measured for each Ascon implementation we time.
+# Code size is measured for each Ascon implementation we time
+# (AKDF runs on our fast CXOF128).
 SIZE_TARGETS = [
     ("Ascon-Mac", A + "/crypto_auth/asconmacv13/opt64"),
     ("Ascon-Prf", A + "/crypto_auth/asconprfv13/opt64"),
     ("Ascon-PrfShort", A + "/crypto_auth/asconprfsv13/opt64"),
-    ("Ascon-Hash256", A + "/crypto_hash/asconhash256/opt64"),
-    ("Ascon-XOF128", A + "/crypto_hash/asconxof128/opt64"),
     ("Ascon-CXOF128 (opt64)", CXOF),
 ]
 
@@ -235,11 +217,11 @@ def machine_and_clock():
 # ------------------------------------------------- stage 2: build programs
 def build_programs():
     print("\nSTAGE 2  building", len(TARGETS), "benchmark programs, all with", " ".join(CFLAGS))
-    for name, role, mode, folder, sizes in TARGETS:
+    for name, mode, folder, sizes in TARGETS:
         exe = BUILD + "/bench_" + name + ".exe"
         run(["gcc"] + CFLAGS + ["-I" + folder] + c_files(folder)
             + ["-I" + A + "/tests", "-DMODE_" + mode, "src/bench.c", "-o", exe])
-        print("   built", name.ljust(17), ("MODE_" + mode).ljust(16), "from", folder)
+        print("   built", name.ljust(15), ("MODE_" + mode).ljust(10), "from", folder)
 
 
 # ---------------------------------------------------- stage 3: correctness
@@ -268,39 +250,11 @@ def check_official(name, folder, generator, answers, extra):
     return False, file_name + ": DIFFERENT"
 
 
-def read_answers(path):
-    """All the 'MD = ...' answers of an answer file, in order."""
-    answers = []
-    with open(path) as f:
-        for line in f:
-            if line.startswith("MD = "):
-                answers.append(line[5:].strip())
-    return answers
-
-
-def check_xof16():
-    """Our 16-byte XOF128 has no answer file of its own. But XOF128 gives the
-    same first bytes whatever length is asked for, so each of its 1,025
-    answers must be the first 16 bytes (32 hex digits) of the official one."""
-    work = empty_folder(BUILD + "/kat_xof16")
-    exe = work + "/genkat.exe"
-    run(["gcc"] + CFLAGS + ["-I" + XOF16] + c_files(XOF16)
-        + ["-I" + A + "/tests", A + "/tests/genkat_hash.c", "-o", exe])
-    run([exe], folder=work)
-    ours = read_answers(work + "/LWC_XOF_KAT_128_128.txt")
-    official = read_answers(A + "/crypto_hash/asconxof128/LWC_XOF_KAT_128_512.txt")
-    matches = 0
-    for i in range(min(len(ours), len(official))):
-        if ours[i] == official[i][:32]:
-            matches = matches + 1
-    ok = len(official) > 0 and len(ours) == len(official) and matches == len(official)
-    return ok, str(matches) + " of " + str(len(official)) + " = first 16 bytes of the official answers"
-
-
 def check_our_answers():
-    """Run AMAC, AKDF and Ascon-Prf-on-AKDF's-inputs in verify mode (nothing
-    is timed) and compare every result with OUR_ANSWERS above."""
+    """Run AKDF in verify mode (nothing is timed) and compare every result
+    with OUR_ANSWERS above."""
     wrong = []
+    count = 0
     for name in OUR_ANSWERS:
         expected = OUR_ANSWERS[name]
         size_list = []
@@ -313,10 +267,11 @@ def check_our_answers():
             parts = line.split(",")
             got[int(parts[2])] = parts[3]
         for size in expected:
+            count = count + 1
             if got.get(size) != expected[size]:
                 wrong.append(name + " at " + str(size))
     if len(wrong) == 0:
-        return True, "all 9 answers match"
+        return True, "all " + str(count) + " answers match"
     return False, "DIFFERENT: " + ", ".join(wrong)
 
 
@@ -326,10 +281,8 @@ def correctness():
     for name, folder, generator, answers, extra in OFFICIAL:
         ok, detail = check_official(name, folder, generator, answers, extra)
         checks.append((name, ok, detail))
-    ok, detail = check_xof16()
-    checks.append(("Ascon-XOF128, 16-byte variant", ok, detail))
     ok, detail = check_our_answers()
-    checks.append(("AMAC, AKDF, Prf on AKDF inputs", ok, detail))
+    checks.append(("AKDF", ok, detail))
 
     all_passed = True
     with open(RESULTS + "/kat_results.csv", "w", newline="") as f:
@@ -390,7 +343,7 @@ def measure():
     print("\nSTAGE 5  measuring:", RUNS, "repetitions per point, pinned to core", CORE)
     header = None
     rows = []
-    for name, role, mode, folder, sizes in jobs:
+    for name, mode, folder, sizes in jobs:
         size_list = []
         for size in sizes:
             size_list.append(str(size))
@@ -402,10 +355,10 @@ def measure():
             print(result.stderr)
             sys.exit(1)
         lines = result.stdout.strip().splitlines()
-        header = lines[0].split(",") + ["role"]
+        header = lines[0].split(",")
         for line in lines[1:]:
-            rows.append(line.split(",") + [role])
-        print("  ", name.ljust(17), str(len(lines) - 1).rjust(4), "rows  ", result.stderr.strip())
+            rows.append(line.split(","))
+        print("  ", name.ljust(15), str(len(lines) - 1).rjust(4), "rows  ", result.stderr.strip())
     with open(RESULTS + "/raw_runs.csv", "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(header)
@@ -414,10 +367,9 @@ def measure():
 
 
 if __name__ == "__main__":
-    for folder in [CXOF, XOF16]:
-        if not os.path.isdir(folder):
-            print(folder, "is missing. Run  python make_variants.py  first.")
-            sys.exit(1)
+    if not os.path.isdir(CXOF):
+        print(CXOF, "is missing. Run  python make_variants.py  first.")
+        sys.exit(1)
     if PILOT:
         print("*** PILOT RUN: 5 repetitions, 2 or 3 sizes per program, saved in results_pilot ***\n")
     machine_and_clock()

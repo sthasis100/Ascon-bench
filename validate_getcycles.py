@@ -11,8 +11,8 @@ WHY
   sound. The designers ship one: ascon-c/tests/getcycles.c. It reports the
   median cycles per byte at several message sizes. We use it on Ascon-Mac
   and Ascon-Prf, which it times exactly as we do, over the same sizes we
-  use (1 to 1,536 bytes). (Ascon-PrfShort takes at most 16 bytes, and our
-  baselines put the key in front of the message, which getcycles cannot do.)
+  use (1 to 1,536 bytes). (Ascon-PrfShort takes at most 16 bytes, and AKDF
+  is our own code on CXOF128, which getcycles cannot time.)
 
 WHAT IT DOES
   1. Builds getcycles.c with OUR flags for Ascon-Mac and Ascon-Prf.

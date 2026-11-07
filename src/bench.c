@@ -11,18 +11,16 @@
  *   never averages anything: the analysis script does that later.
  *
  * WHY ONE PROGRAM FOR EVERY FUNCTION
- *   A comparison is only fair if both sides are timed in exactly the same
- *   way, with the same input bytes. So this one program times every
- *   function. You choose the function when you compile it:
+ *   Every function is timed in exactly the same way, with the same input
+ *   bytes, so the measurements can be trusted and repeated. So this one
+ *   program times all four functions. You choose the function when you
+ *   compile it:
  *     -I<folder>   which Ascon code is used
- *     -DMODE_...   how it is called (one of the five modes below)
+ *     -DMODE_...   how it is called (one of the two modes below)
  *
- * THE FIVE MODES
- *   MODE_AUTH        Ascon-Mac, Ascon-Prf or Ascon-PrfShort (proposed)
- *   MODE_KEYED_HASH  Hash256 or XOF128 of key || message (a MAC or PRF)
- *   MODE_AMAC        AMAC, NIST's planned MAC, built on CXOF128
- *   MODE_AKDF        AKDF, NIST's planned KDF, built on CXOF128
- *   MODE_PRF_KDF     Ascon-Prf given exactly the same inputs as AKDF
+ * THE TWO MODES
+ *   MODE_AUTH   Ascon-Mac, Ascon-Prf or Ascon-PrfShort (the designers' code)
+ *   MODE_AKDF   AKDF, NIST's planned KDF, built on CXOF128
  *
  * HOW TO RUN IT (Command Prompt)
  *   build\bench_<name>.exe <label> <runs> <sizes> [core]
@@ -31,7 +29,7 @@
  *            0 = VERIFY MODE: nothing is timed, and each result is
  *            printed in hex so that it can be checked.
  *     sizes  comma-separated, for example 1,16,64: the message length in
- *            bytes (for MODE_AKDF and MODE_PRF_KDF: the output length)
+ *            bytes (for MODE_AKDF: the length of the new key)
  *     core   the CPU core to run on (default 2)
  *
  * OUTPUT, one line per repetition:
@@ -63,9 +61,9 @@ static uint8_t out[MAX_OUT];          /* the result                           */
 static unsigned long long in_len;     /* input bytes  */
 static int out_len;                   /* output bytes */
 
-#if defined(MODE_AMAC) || defined(MODE_AKDF)
-/* ---- THE INPUT FORMAT OF AMAC AND AKDF -----------------------------------
-   NIST's planned AMAC and AKDF are both defined as
+#if defined(MODE_AKDF)
+/* ---- THE INPUT FORMAT OF AKDF ---------------------------------------------
+   NIST's planned AKDF is defined as
        CXOF128( bytepad(K, 32) || X || right_encode(L),  L,  label )
    using two encodings from NIST SP 800-185 (the KMAC standard):
      left_encode(x)   the number of bytes in x, then x (highest byte first)
@@ -155,44 +153,6 @@ static int one_call(unsigned long long size) {
   return crypto_auth(out, msg, size, key);
 }
 
-#elif defined(MODE_KEYED_HASH)
-/* A MAC or PRF made from Hash256 or XOF128: hash the key followed by the
-   message. The hash has no key input, so the key goes in as data.
-   key || message is built before timing. */
-#include "api.h"
-#include "crypto_hash.h"
-#define MODE_NAME "keyed_hash"
-#define KEY_BYTES KEY_LEN
-#define SIZE_LIMIT MAX_MSG
-static uint8_t keyed[KEY_LEN + MAX_MSG];      /* the key, then the message */
-static void prepare(unsigned long long size) {
-  memcpy(keyed, key, KEY_LEN);
-  memcpy(keyed + KEY_LEN, msg, size);
-  in_len = size;
-  out_len = CRYPTO_BYTES;
-}
-static int one_call(unsigned long long size) {
-  return crypto_hash(out, keyed, KEY_LEN + size);
-}
-
-#elif defined(MODE_AMAC)
-/* AMAC, NIST's planned MAC:
-     CXOF128( bytepad(K,32) || X || right_encode(L),  L,  "AMAC" || S )
-   K = our key, X = the message, L = 128 bits (a 16-byte tag, like
-   Ascon-Mac), S = empty. The input is formatted before timing. */
-#define MODE_NAME "amac"
-#define KEY_BYTES KEY_LEN
-#define SIZE_LIMIT MAX_MSG
-static void prepare(unsigned long long size) {
-  format_input(msg, size, 16 * 8);
-  in_len = size;
-  out_len = 16;
-}
-static int one_call(unsigned long long size) {
-  (void)size;  /* not needed here: the message is already inside fmt[] */
-  return crypto_cxof(out, 16, fmt, fmt_len, (const unsigned char*)"AMAC", 4);
-}
-
 #elif defined(MODE_AKDF)
 /* AKDF, NIST's planned KDF:
      CXOF128( bytepad(K,32) || X || right_encode(L),  L,  "AKDF" || S )
@@ -213,30 +173,8 @@ static int one_call(unsigned long long size) {
                      4 + BENCH_LABEL_LEN);
 }
 
-#elif defined(MODE_PRF_KDF)
-/* Ascon-Prf given exactly AKDF's inputs: the same key K in its key slot,
-   X followed by the label S as its message, and the same output length.
-   crypto_prf() is the designers' function (their crypto_auth() calls it).
-   No header declares it, so we declare it here, exactly as in their prf.c. */
-int crypto_prf(unsigned char* out, unsigned long long outlen,
-               const unsigned char* in, unsigned long long inlen,
-               const unsigned char* k);
-#define MODE_NAME "prf_kdf"
-#define KEY_BYTES KEY_LEN
-#define SIZE_LIMIT MAX_OUT
-static uint8_t x_label[X_LEN + BENCH_LABEL_LEN];     /* X || S, 30 bytes */
-static void prepare(unsigned long long size) {
-  memcpy(x_label, msg, X_LEN);
-  memcpy(x_label + X_LEN, BENCH_LABEL, BENCH_LABEL_LEN);
-  in_len = X_LEN + BENCH_LABEL_LEN;
-  out_len = (int)size;
-}
-static int one_call(unsigned long long size) {
-  return crypto_prf(out, size, x_label, X_LEN + BENCH_LABEL_LEN, key);
-}
-
 #else
-#error "Compile with one of: -DMODE_AUTH -DMODE_KEYED_HASH -DMODE_AMAC -DMODE_AKDF -DMODE_PRF_KDF"
+#error "Compile with one of: -DMODE_AUTH -DMODE_AKDF"
 #endif
 
 /* ---- THE CLOCK ------------------------------------------------------------

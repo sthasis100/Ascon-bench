@@ -6,30 +6,30 @@ This file is NOT part of the Ascon designers' repository (ascon-c).
 ---------------------------------------------------------------------------
 plots.py  -  draw the report's figures from the analysed results
 
-THE FIGURES (saved in the results folder, under figures)
-  fig1   execution time: cycles per call against message size
-  fig2   short messages (1, 8, 16 bytes): the 16-byte MAC job
-  fig3   cycles per byte against message size
-  fig4   throughput in MB/s
-  fig5   heat map: every function at every size, against the fastest
-  fig6   noise: how much each measurement varied
-  fig7   how many times faster Ascon-Mac is than each MAC
-  fig8   how many times faster Ascon-Prf is than the XOF128 PRF
-  fig9   key derivation: Ascon-Prf against AKDF
-  fig10  code size at -O3 and -Os
+Each timing figure has four panels, one per function, each with its own
+scale: Ascon-Mac, Ascon-Prf, Ascon-PrfShort and AKDF. The x axis is the
+message length, except for AKDF, where it is the length of the new key.
 
-RUN (Command Prompt, in the project folder)
+THE FIGURES (saved in the results folder, under figures)
+  fig1_execution_time   median cycles per call, with the fastest-to-slowest
+                        range of the repetitions shaded
+  fig2_cycles_per_byte  median cycles per byte
+  fig3_throughput       MB per second (converted from cycles)
+  fig4_noise            how much the repetitions varied, against 5%
+  fig5_code_size        bytes of machine code at -O3 and -Os
+
+RUN (Command Prompt, in the project folder), after analyze.py:
   python plots.py                  the real results
   python plots.py results_pilot    the pilot's results
 ===========================================================================
 """
-import json
 import os
 import sys
 
 import matplotlib
 matplotlib.use("Agg")           # draw straight to files; no window opens
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FixedLocator, FuncFormatter, LogLocator, NullFormatter, NullLocator
 import pandas as pd
 
 RESULTS = "results"
@@ -39,197 +39,155 @@ OUT = RESULTS + "/figures"
 os.makedirs(OUT, exist_ok=True)
 
 summary = pd.read_csv(RESULTS + "/summary.csv")
-comparisons = pd.read_csv(RESULTS + "/comparisons.csv")
-code_size = pd.read_csv(RESULTS + "/code_size.csv")
-with open(RESULTS + "/environment.json") as f:
-    ghz = json.load(f)["nominal_ghz"]
 
-# The same name and colour for a function in every figure.
-# Line style: proposed solid, baselines dashed.
-STYLE = {
-    "ascon_mac":        ("Ascon-Mac (proposed)", "#c0392b", "-"),
-    "ascon_prf":        ("Ascon-Prf (proposed)", "#e67e22", "-"),
-    "ascon_prfshort":   ("Ascon-PrfShort (proposed)", "#27ae60", "-"),
-    "prf_kdf":          ("Ascon-Prf, AKDF inputs (proposed)", "#e67e22", "-"),
-    "amac":             ("AMAC (NIST planned)", "#6c3483", "--"),
-    "akdf":             ("AKDF (NIST planned)", "#6c3483", "--"),
-    "mac_from_xof128":  ("MAC from XOF128, 16 B", "#2471a3", "--"),
-    "mac_from_hash256": ("MAC from Hash256, 32 B", "#117a65", "--"),
-    "prf_from_xof128":  ("PRF from XOF128, 64 B", "#5dade2", "--"),
-}
-# The functions measured at all 13 message sizes (PrfShort stops at 16 bytes
-# and has its own figure, fig2).
-MAIN = ["ascon_mac", "ascon_prf", "amac", "mac_from_xof128", "mac_from_hash256",
-        "prf_from_xof128"]
+# The four functions: name in the CSV, panel title, x-axis label.
+FUNCTIONS = [
+    ("ascon_mac",      "Ascon-Mac (16-byte tag)",       "message size (bytes)"),
+    ("ascon_prf",      "Ascon-Prf (64-byte output)",    "message size (bytes)"),
+    ("ascon_prfshort", "Ascon-PrfShort (16-byte tag)",  "message size (bytes)"),
+    ("akdf",           "AKDF (NIST planned)",           "length of the new key (bytes)"),
+]
+
+# Colours and ink (light chart surface).
+SERIES = "#2a78d6"           # the one series in each panel
+SECOND = "#eb6834"           # the second series of the code-size bars
+INK = "#0b0b0b"
+INK_SOFT = "#52514e"
+MUTED = "#898781"
+GRID = "#e1e0d9"
+AXIS = "#c3c2b7"
+SURFACE = "#fcfcfb"
+
+plt.rcParams.update({
+    "figure.facecolor": SURFACE, "axes.facecolor": SURFACE, "savefig.facecolor": SURFACE,
+    "font.size": 9, "text.color": INK, "axes.labelcolor": INK_SOFT,
+    "axes.titlesize": 10, "axes.titleweight": "bold", "axes.titlecolor": INK,
+    "axes.edgecolor": AXIS, "axes.spines.top": False, "axes.spines.right": False,
+    "xtick.color": MUTED, "ytick.color": MUTED,
+    "xtick.labelcolor": INK_SOFT, "ytick.labelcolor": INK_SOFT,
+    "axes.grid": True, "grid.color": GRID, "grid.linewidth": 0.6,
+    "legend.frameon": False,
+})
 
 
 def save(fig, name):
     """Write one figure to a PNG file and close it."""
-    fig.tight_layout()
-    fig.savefig(OUT + "/" + name + ".png", dpi=150)
+    fig.savefig(OUT + "/" + name + ".png", dpi=150, bbox_inches="tight")
     plt.close(fig)
     print("wrote", name + ".png")
 
 
-def lines(targets, column, ylabel, title, name):
-    """One line per function: a summary column against message size, on log
-    scales (sizes go from 1 byte to 64 KB)."""
-    fig, ax = plt.subplots(figsize=(8, 5))
-    for target in targets:
+def size_label(size):
+    """65536 -> '65,536'"""
+    return f"{int(size):,}"
+
+
+# Plain numbers on every y axis (1,000 rather than 10^3 or 1000).
+PLAIN = FuncFormatter(lambda value, position: f"{value:,.0f}" if value >= 10 else f"{value:g}")
+
+
+def panels(column, ylabel, title, name, band=None, reference=None, note=None, log_y=True):
+    """One panel per function: a summary column against size.
+    band       (low column, high column) to shade, or None
+    reference  a value to draw as a dashed line (with its label), or None
+    note       a line of text under the figure, or None
+    log_y      allow a log scale for the y axis (when values span over 10x)"""
+    fig, axes = plt.subplots(2, 2, figsize=(10, 7))
+    for ax, (target, label, xlabel) in zip(axes.flat, FUNCTIONS):
         data = summary[summary["target"] == target].sort_values("size")
-        if len(data) > 0:
-            label, colour, style = STYLE[target]
-            ax.plot(data["size"], data[column], style, color=colour, marker="o",
-                    markersize=3, label=label)
-    ax.set_xscale("log", base=2)
-    ax.set_yscale("log")
-    ax.set_xlabel("message size (bytes, log scale)")
-    ax.set_ylabel(ylabel)
-    ax.set_title(title)
-    ax.grid(alpha=0.3)
-    ax.legend(fontsize=7)
+        ax.set_title(label, loc="left")
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        if len(data) == 0:
+            ax.text(0.5, 0.5, "no data", transform=ax.transAxes, ha="center", color=MUTED)
+            continue
+        x = data["size"]
+        if band:
+            ax.fill_between(x, data[band[0]], data[band[1]], color=SERIES, alpha=0.18,
+                            linewidth=0)
+        ax.plot(x, data[column], color=SERIES, linewidth=1.5, marker="o", markersize=4)
+        # Log scales only where the values span more than 10 times.
+        if x.max() / x.min() > 10:
+            ax.set_xscale("log", base=2)
+        values = data[column]
+        if band:
+            values = pd.concat([data[band[0]], data[band[1]]])
+        if log_y and values.min() > 0 and values.max() / values.min() > 10:
+            ax.set_yscale("log")
+            # 1, 2, 5, 10, 20, 50 ... when the values span 3 powers of 10 or
+            # less; otherwise only 1, 10, 100 ...
+            if values.max() / values.min() <= 1000:
+                ax.yaxis.set_major_locator(LogLocator(base=10, subs=(1, 2, 5)))
+            ax.yaxis.set_minor_formatter(NullFormatter())
+        ax.yaxis.set_major_formatter(PLAIN)
+        # Label only sizes that were measured, and not too many of them.
+        sizes = list(x)
+        if len(sizes) > 6:
+            sizes = sizes[::3] if sizes[-1] in sizes[::3] else sizes[::3] + [sizes[-1]]
+        ax.xaxis.set_major_locator(FixedLocator(sizes))
+        ax.xaxis.set_minor_locator(NullLocator())
+        ax.set_xticklabels([size_label(s) for s in sizes])
+        if reference:
+            value, text = reference
+            ax.axhline(value, color=MUTED, linestyle="--", linewidth=1)
+            ax.text(x.max(), value, " " + text, color=INK_SOFT, va="bottom", ha="right",
+                    fontsize=8)
+            ax.set_ylim(bottom=0, top=max(values.max(), value) * 1.15)
+    fig.suptitle(title, x=0.01, ha="left", fontsize=12, fontweight="bold")
+    fig.tight_layout()
+    if note:
+        fig.text(0.01, -0.01, note, color=INK_SOFT, fontsize=8, ha="left", va="top")
     save(fig, name)
 
 
-def speedups(names, title, name):
-    """How many times faster, against message size: one line per comparison."""
-    fig, ax = plt.subplots(figsize=(8, 4.5))
-    for comparison in names:
-        data = comparisons[comparisons["comparison"] == comparison].sort_values("size")
-        ax.plot(data["size"], data["speedup"], marker="o", markersize=3, label=comparison)
-    ax.axhline(1, color="black", linewidth=0.8)
-    ax.set_xscale("log", base=2)
-    ax.set_xlabel("message size (bytes, log scale)")
-    ax.set_ylabel("times faster (medians)")
-    ax.set_title(title)
-    ax.grid(alpha=0.3)
-    ax.legend(fontsize=8)
-    save(fig, name)
+# fig1: execution time
+panels("cycles_median", "CPU cycles per call",
+       "Execution time against size", "fig1_execution_time",
+       band=("cycles_min", "cycles_max"),
+       note="Line: median of the repetitions. Shaded: from the fastest to the slowest "
+            "repetition. Cycles are RDTSC ticks.")
 
+# fig2: cycles per byte
+panels("cycles_per_byte_median", "CPU cycles per byte (median)",
+       "Cycles per byte against size", "fig2_cycles_per_byte",
+       note="For AKDF, the bytes are the bytes of the new key it makes.")
 
-def bars(groups, series, ylabel, title, name, tilt=0):
-    """Grouped bars: one group per x label, one bar per series. Each series is
-    (label, colour, values, texts); the texts are written on top of the bars
-    (an empty list for none). tilt turns long x labels so they do not overlap."""
-    fig, ax = plt.subplots(figsize=(8, 4.5))
-    width = 0.8 / len(series)
-    for i in range(len(series)):
-        label, colour, values, texts = series[i]
-        positions = []
-        for g in range(len(groups)):
-            positions.append(g + i * width - 0.4 + width / 2)
-        ax.bar(positions, values, width, color=colour, label=label)
-        for j in range(len(texts)):
-            ax.text(positions[j], values[j], texts[j], ha="center", va="bottom", fontsize=8)
-    ax.set_xticks(range(len(groups)))
-    if tilt:
-        ax.set_xticklabels(groups, fontsize=8, rotation=tilt, ha="right")
-    else:
-        ax.set_xticklabels(groups, fontsize=8)
-    ax.margins(y=0.12)                     # room for the texts on top
-    ax.set_ylabel(ylabel)
-    ax.set_title(title)
-    ax.legend(fontsize=7)
-    save(fig, name)
+# fig3: throughput (only if the nominal frequency was known)
+if "MBps_median" in summary.columns:
+    panels("MBps_median", "MB per second (median)",
+           "Throughput against size", "fig3_throughput",
+           note="Converted from cycles with the CPU's nominal frequency.")
 
+# fig4: noise
+panels("noise_pct", "noise (% of the mean)",
+       "How much the repetitions varied", "fig4_noise", reference=(5, "5%"), log_y=False,
+       note="Noise = standard deviation of the repetitions as a % of their mean. "
+            "Under 5% is good.")
 
-# fig1: execution time against message size
-lines(MAIN, "cycles_median", "CPU cycles per call (median, log scale)",
-      "Execution time against message size", "fig1_execution_time")
-
-# fig2: short messages - bars at 1, 8 and 16 bytes (the sizes that were measured)
-short_sizes = []
-for size in [1, 8, 16]:
-    if size in list(summary["size"]):
-        short_sizes.append(size)
-series = []
-for target in ["ascon_prfshort", "ascon_mac", "amac", "mac_from_xof128", "mac_from_hash256"]:
-    data = summary[summary["target"] == target]
-    values = []
-    for size in short_sizes:
-        match = data[data["size"] == size]
-        if len(match) > 0:
-            values.append(match["cycles_median"].iloc[0])
-        else:
-            values.append(0)
-    series.append((STYLE[target][0], STYLE[target][1], values, []))
-group_names = []
-for size in short_sizes:
-    group_names.append(str(size) + " B")
-bars(group_names, series, "CPU cycles per call (median)", "Short messages: a 16-byte tag",
-     "fig2_short_messages")
-
-# fig3 and fig4: cycles per byte, and throughput (needs the nominal frequency)
-lines(MAIN, "cycles_per_byte_median", "CPU cycles per byte (median, log scale)",
-      "Cycles per byte against message size", "fig3_cycles_per_byte")
-if ghz:
-    lines(MAIN, "MBps_median", "MB per second (median, log scale)",
-          f"Throughput (converted from cycles at {ghz} GHz)", "fig4_throughput")
-
-# fig5: heat map - each function's cycles per byte, divided by the fastest
-table = summary[summary["target"].isin(MAIN)].pivot_table(
-    index="target", columns="size", values="cycles_per_byte_median")
-relative = table / table.min()
-fig, ax = plt.subplots(figsize=(10, 5))
-image = ax.imshow(relative.values, cmap="RdYlGn_r", aspect="auto")
-ax.set_xticks(range(len(relative.columns)))
-ax.set_xticklabels(relative.columns, rotation=45)
-ax.set_yticks(range(len(relative.index)))
-names = []
-for target in relative.index:
-    names.append(STYLE[target][0])
-ax.set_yticklabels(names, fontsize=8)
-for i in range(relative.shape[0]):
-    for j in range(relative.shape[1]):
-        value = relative.values[i, j]
-        if pd.notna(value):
-            ax.text(j, i, f"{value:.1f}", ha="center", va="center", fontsize=7)
-fig.colorbar(image, label="times the fastest at that size")
-ax.set_xlabel("message size (bytes)")
-ax.set_title("Cost against the fastest function at each size")
-save(fig, "fig5_heatmap")
-
-# fig6: noise - one dot per size, for each function
+# fig5: code size (execution size)
+code_size = pd.read_csv(RESULTS + "/code_size.csv")
+NAMES = {"Ascon-Mac": "Ascon-Mac", "Ascon-Prf": "Ascon-Prf", "Ascon-PrfShort": "Ascon-PrfShort",
+         "Ascon-CXOF128 (opt64)": "Ascon-CXOF128 opt64\n(used by AKDF)"}
+# (older results files may add a note after "opt64"; the label shown is ours)
+code_size["function"] = code_size["function"].where(
+    ~code_size["function"].str.startswith("Ascon-CXOF128 (opt64"), "Ascon-CXOF128 (opt64)")
+code_size = code_size[code_size["function"].isin(list(NAMES))]
 fig, ax = plt.subplots(figsize=(8, 4.5))
-present = []
-for target in STYLE:
-    if target in list(summary["target"]):
-        present.append(target)
-for i in range(len(present)):
-    data = summary[summary["target"] == present[i]]
-    ax.scatter([i] * len(data), data["noise_pct"], color=STYLE[present[i]][1], s=12)
-ax.axhline(5, color="red", linestyle="--", linewidth=1, label="5%: look at it")
-ax.set_xticks(range(len(present)))
-labels = []
-for target in present:
-    labels.append(STYLE[target][0])
-ax.set_xticklabels(labels, rotation=60, ha="right", fontsize=7)
-ax.set_ylabel("noise (% of the mean)")
-ax.set_title("How much each measurement varied (one dot per size)")
-ax.legend(fontsize=8)
-save(fig, "fig6_noise")
-
-# fig7 and fig8: speed-ups
-speedups(["Ascon-Mac vs AMAC", "Ascon-Mac vs MAC from XOF128", "Ascon-Mac vs MAC from Hash256"],
-         "How many times faster Ascon-Mac is", "fig7_mac_speedup")
-speedups(["Ascon-Prf vs PRF from XOF128"], "How many times faster Ascon-Prf is", "fig8_prf_speedup")
-
-# fig9: key derivation, with the speed-up written on each AKDF bar
-kdf = comparisons[comparisons["comparison"] == "Ascon-Prf vs AKDF"].sort_values("size")
-group_names = []
-texts = []
-for size in kdf["size"]:
-    group_names.append(str(int(size)) + "-byte key")
-for speedup in kdf["speedup"]:
-    texts.append(f"{speedup:.2f}x")
-bars(group_names,
-     [(STYLE["prf_kdf"][0], STYLE["prf_kdf"][1], list(kdf["A_cycles"]), []),
-      (STYLE["akdf"][0], STYLE["akdf"][1], list(kdf["B_cycles"]), texts)],
-     "CPU cycles per call (median)", "Key derivation: same key, data, label and key length",
-     "fig9_kdf")
-
-# fig10: code size
-bars(list(code_size["function"]),
-     [("-O3 (the code we time)", "#2471a3", list(code_size["text_bytes_O3"]), []),
-      ("-Os (small devices)", "#b3b6b7", list(code_size["text_bytes_Os"]), [])],
-     "bytes of machine code", "Code size (execution size)", "fig10_code_size", tilt=25)
+width = 0.38
+for i, (column, label, colour) in enumerate([("text_bytes_O3", "-O3 (the code we time)", SERIES),
+                                              ("text_bytes_Os", "-Os (small devices)", SECOND)]):
+    positions = [g + (i - 0.5) * (width + 0.02) for g in range(len(code_size))]
+    bars = ax.bar(positions, code_size[column], width, color=colour, label=label, zorder=2)
+    for bar, value in zip(bars, code_size[column]):
+        ax.text(bar.get_x() + bar.get_width() / 2, value, f"{int(value):,}",
+                ha="center", va="bottom", fontsize=8, color=INK_SOFT)
+ax.set_xticks(range(len(code_size)))
+ax.set_xticklabels([NAMES[f] for f in code_size["function"]])
+ax.grid(axis="x", visible=False)
+ax.margins(y=0.12)
+ax.yaxis.set_major_formatter(PLAIN)
+ax.set_ylabel("bytes of machine code")
+ax.set_title("Code size (execution size)", loc="left", fontsize=12)
+ax.legend(loc="upper left")
+fig.tight_layout()
+save(fig, "fig5_code_size")
