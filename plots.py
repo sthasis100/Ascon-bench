@@ -17,6 +17,11 @@ THE FIGURES (saved in the results folder, under figures)
   fig3_throughput       MB per second (converted from cycles)
   fig4_noise            how much the repetitions varied, against 5%
   fig5_code_size        bytes of machine code at -O3 and -Os
+  fig6_noise_heatmap    the noise of every point, one cell per function and
+                        size (5% or more: time that point again)
+  fig7_runs_heatmap     every single batch, coloured by how far it was from
+                        the median of its own 30 runs (shows interruptions);
+                        reads raw_runs.csv
 
 RUN (Command Prompt, in the project folder), after analyze.py:
   python plots.py                  the real results
@@ -29,7 +34,9 @@ import sys
 import matplotlib
 matplotlib.use("Agg")           # draw straight to files; no window opens
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FixedLocator, FuncFormatter, LogLocator, NullFormatter, NullLocator
+import numpy as np
 import pandas as pd
 
 RESULTS = "results"
@@ -188,3 +195,122 @@ ax.set_title("Code size (execution size)", loc="left", fontsize=12)
 ax.legend(loc="upper left")
 fig.tight_layout()
 save(fig, "fig5_code_size")
+
+# ------------------------------------------------------------- heat maps
+# These show each function's own measurements: how steady they were. They
+# never divide one function by another.
+ONE_HUE = LinearSegmentedColormap.from_list("one_hue", ["#f2f6fc", "#9cc0ec", SERIES, "#0d3a73"])
+TWO_HUES = LinearSegmentedColormap.from_list("two_hues", [SERIES, "#ecebe6", SECOND])
+NAMES_SHORT = {"ascon_mac": "Ascon-Mac", "ascon_prf": "Ascon-Prf",
+               "ascon_prfshort": "Ascon-PrfShort", "akdf": "AKDF"}
+
+
+def text_colour(colour):
+    """White text on dark cells, ink on light ones."""
+    r, g, b = colour[:3]
+    return "white" if 0.299 * r + 0.587 * g + 0.114 * b < 0.55 else INK
+
+
+def noise_grid(ax, targets, sizes, vmax):
+    """One row per function, one column per size; each cell is its noise %."""
+    grid = np.full((len(targets), len(sizes)), np.nan)
+    for i, target in enumerate(targets):
+        for j, size in enumerate(sizes):
+            match = summary[(summary["target"] == target) & (summary["size"] == size)]
+            if len(match) > 0:
+                grid[i, j] = match["noise_pct"].iloc[0]
+    image = ax.imshow(np.ma.masked_invalid(grid), cmap=ONE_HUE, vmin=0, vmax=vmax, aspect="auto")
+    for i in range(len(targets)):
+        for j in range(len(sizes)):
+            if np.isnan(grid[i, j]):
+                ax.text(j, i, "–", ha="center", va="center", fontsize=8, color=MUTED)
+            else:
+                value = grid[i, j]
+                ax.text(j, i, f"{value:.1f}", ha="center", va="center", fontsize=7.5,
+                        fontweight="bold" if value >= 5 else "normal",
+                        color=text_colour(ONE_HUE(min(value / vmax, 1))))
+    ax.set_xticks(range(len(sizes)))
+    ax.set_xticklabels([size_label(s) for s in sizes], rotation=45, ha="right")
+    ax.set_yticks(range(len(targets)))
+    ax.set_yticklabels([NAMES_SHORT[t] for t in targets])
+    ax.grid(False)
+    for side in ["top", "right", "bottom", "left"]:
+        ax.spines[side].set_visible(False)
+    ax.tick_params(length=0)
+    return image
+
+
+# fig6: noise of every point, as a heat map
+message_targets = [t for t in ["ascon_mac", "ascon_prf", "ascon_prfshort"]
+                   if t in list(summary["target"])]
+present = summary[summary["target"].isin(message_targets)]
+message_sizes = sorted(set(present["size"]))
+vmax = max(10, float(summary["noise_pct"].max()))
+fig = plt.figure(figsize=(10, 4.6))
+grid_spec = fig.add_gridspec(2, max(len(message_sizes), 4), height_ratios=[len(message_targets), 1],
+                             hspace=0.9)
+top = fig.add_subplot(grid_spec[0, :])
+image = noise_grid(top, message_targets, message_sizes, vmax)
+top.set_xlabel("message size (bytes)")
+top.set_title("Message functions", loc="left")
+if "akdf" in list(summary["target"]):
+    key_sizes = sorted(set(summary[summary["target"] == "akdf"]["size"]))
+    bottom = fig.add_subplot(grid_spec[1, :len(key_sizes)])
+    noise_grid(bottom, ["akdf"], key_sizes, vmax)
+    bottom.set_xlabel("length of the new key (bytes)")
+    bottom.set_title("Key derivation", loc="left")
+bar_axes = fig.add_axes([0.42, 0.14, 0.45, 0.05])
+bar = fig.colorbar(image, cax=bar_axes, orientation="horizontal")
+bar.ax.axvline(5, color=INK, linewidth=1.2)
+bar.set_label("noise (% of the mean); the black line is 5%: at or above it, time that point again")
+bar.outline.set_visible(False)
+fig.suptitle("Noise of every measurement point", x=0.01, ha="left", fontsize=12, fontweight="bold")
+fig.text(0.01, -0.02, "Each cell: the standard deviation of that point's repetitions as a % of their "
+         "mean. Bold numbers are 5% or more. A dash means the function is not timed at that size.",
+         color=INK_SOFT, fontsize=8, ha="left", va="top")
+save(fig, "fig6_noise_heatmap")
+
+# fig7: every single batch, as a heat map (needs raw_runs.csv)
+raw = pd.read_csv(RESULTS + "/raw_runs.csv")
+raw = raw[raw["target"].isin([t for t, label, xlabel in FUNCTIONS])].copy()
+raw["size"] = raw["msg_bytes"]
+is_kdf = raw["mode"] == "akdf"
+raw.loc[is_kdf, "size"] = raw.loc[is_kdf, "out_bytes"]
+raw["cycles_per_call"] = raw["cycles"] / raw["reps"]
+raw["median"] = raw.groupby(["target", "size"])["cycles_per_call"].transform("median")
+raw["away_pct"] = (raw["cycles_per_call"] / raw["median"] - 1) * 100
+targets = [t for t, label, xlabel in FUNCTIONS if t in list(raw["target"])]
+rows = [raw[raw["target"] == t]["size"].nunique() for t in targets]
+runs = int(raw["run"].max()) + 1
+height = 2.2 + 0.27 * sum(rows)
+fig, axes = plt.subplots(len(targets), 1, figsize=(10, height),
+                         gridspec_kw={"height_ratios": rows, "hspace": 0.55}, squeeze=False)
+limit = 10                                   # colours stop at -10% and +10%
+for ax, target in zip(axes[:, 0], targets):
+    part = raw[raw["target"] == target]
+    table = part.pivot_table(index="size", columns="run", values="away_pct")
+    image = ax.imshow(table.values, cmap=TWO_HUES, vmin=-limit, vmax=limit, aspect="auto",
+                      interpolation="nearest")
+    ax.set_yticks(range(len(table.index)))
+    ax.set_yticklabels([size_label(s) for s in table.index], fontsize=7.5)
+    ax.set_xticks(range(0, runs, 5))
+    ax.set_xticklabels([str(r) for r in range(0, runs, 5)])
+    ax.set_ylabel("new key (bytes)" if target == "akdf" else "message (bytes)", fontsize=8)
+    title = [label for t, label, xlabel in FUNCTIONS if t == target][0]
+    ax.set_title(title, loc="left")
+    ax.grid(False)
+    for side in ["top", "right", "bottom", "left"]:
+        ax.spines[side].set_visible(False)
+    ax.tick_params(length=0)
+axes[-1, 0].set_xlabel("run (left to right in the order they were timed)")
+fig.subplots_adjust(right=0.86, top=1 - 0.9 / height, bottom=0.75 / height)
+bar_axes = fig.add_axes([0.89, 0.25, 0.018, 0.5])
+bar = fig.colorbar(image, cax=bar_axes, extend="both")
+bar.set_label("% away from that size's median   (− faster, + slower)")
+bar.outline.set_visible(False)
+fig.suptitle("Every timed batch, compared with the median of its own 30 runs", x=0.01,
+             y=1 - 0.25 / height, ha="left", fontsize=12, fontweight="bold")
+fig.text(0.01, 0.12 / height, "Each cell is one batch. Grey: close to the median. Orange: slower, for example a "
+         "batch that Windows interrupted. Blue: faster. Colours stop at ±10%.",
+         color=INK_SOFT, fontsize=8, ha="left", va="bottom")
+save(fig, "fig7_runs_heatmap")

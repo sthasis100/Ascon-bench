@@ -340,6 +340,8 @@ How to read it: both tools count with RDTSC, which ticks at a fixed rate, while 
 | fig3_throughput | MB/s against size |
 | fig4_noise | how much the repetitions varied at each size, against the 5% line |
 | fig5_code_size | code size at -O3 and -Os |
+| fig6_noise_heatmap | the noise of every point as a heat map: one cell per function and size (5% or more: time that point again) |
+| fig7_runs_heatmap | every single timed batch, coloured by how far it was from the median of its own 30 runs; shows when something interrupted or slowed the run |
 
 **What happens next:** these tables and figures go into the final report.
 
