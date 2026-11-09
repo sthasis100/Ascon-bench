@@ -285,6 +285,18 @@ python run_all.py
 
 The pilot can never overwrite the real results.
 
+**Benchmark one function only.** Add `--only` and the function's name. Every stage then does only that function's part (the clock check, its build, its correctness check, its code size and its timing), and the results go to their own folder, so they never mix with the full study. For Ascon-Mac:
+
+```
+python run_all.py --pilot --only ascon_mac
+python run_all.py --only ascon_mac
+python analyze.py results_ascon_mac
+python validate_getcycles.py results_ascon_mac
+python plots.py results_ascon_mac
+```
+
+The names are `ascon_mac`, `ascon_prf`, `ascon_prfshort` and `akdf`. Several can be given with commas, for example `--only ascon_mac,akdf` (saved in `results_ascon_mac_akdf`). `make_variants.py` is only needed when AKDF is included. The figures then show one panel for each function that was measured.
+
 **What you get** (in `results`, or `results_pilot` for the pilot):
 
 - `environment.json`: the machine, compiler, flags and settings.

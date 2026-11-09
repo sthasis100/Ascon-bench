@@ -89,6 +89,8 @@ ours = pd.read_csv(RESULTS + "/summary.csv")
 os.makedirs(BUILD, exist_ok=True)
 rows = []
 for name, folder in FUNCTIONS:
+    if name not in set(ours["target"]):
+        continue                          # this function was not measured
     exe = BUILD + "/getcycles_" + name + ".exe"
     c_files = []
     for file_name in sorted(os.listdir(folder)):

@@ -97,8 +97,9 @@ summary.to_csv(RESULTS + "/summary.csv", index=False)
 
 # ----------------------------------------------------------------- headline
 worst = summary.loc[summary["noise_pct"].idxmax()]
+count = raw["target"].nunique()
 print(len(raw), "measurements ->", len(summary), "summary rows ("
-      + str(raw["target"].nunique()) + " functions)")
+      + str(count) + " function" + ("s" if count > 1 else "") + ")")
 print("clock: RDTSC; nominal frequency", ghz, "GHz, used only to convert cycles to ns and MB/s")
 print(f"noise: median {summary['noise_pct'].median():.2f}%, worst {worst['noise_pct']:.2f}% "
       f"({worst['target']} at {int(worst['size'])} bytes)")

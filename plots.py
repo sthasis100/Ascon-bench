@@ -6,8 +6,8 @@ This file is NOT part of the Ascon designers' repository (ascon-c).
 ---------------------------------------------------------------------------
 plots.py  -  draw the report's figures from the analysed results
 
-Each timing figure has four panels, one per function, each with its own
-scale: Ascon-Mac, Ascon-Prf, Ascon-PrfShort and AKDF. The x axis is the
+Each timing figure has one panel per function that was measured (four in
+the full study, one with run_all.py --only), each with its own scale. The x axis is the
 message length, except for AKDF, where it is the length of the new key.
 
 THE FIGURES (saved in the results folder, under figures)
@@ -92,8 +92,15 @@ def panels(column, ylabel, title, name, band=None, reference=None, note=None, lo
     reference  a value to draw as a dashed line (with its label), or None
     note       a line of text under the figure, or None
     log_y      allow a log scale for the y axis (when values span over 10x)"""
-    fig, axes = plt.subplots(2, 2, figsize=(10, 7))
-    for ax, (target, label, xlabel) in zip(axes.flat, FUNCTIONS):
+    # One panel per function that was measured: 1 panel, or 2 per row.
+    present = [f for f in FUNCTIONS if f[0] in set(summary["target"])]
+    columns = 1 if len(present) == 1 else 2
+    rows = (len(present) + 1) // 2 if columns == 2 else 1
+    fig, axes = plt.subplots(rows, columns, figsize=(5 * columns + 1, 3.5 * rows + 0.5),
+                             squeeze=False)
+    for ax in axes.flat[len(present):]:
+        ax.set_visible(False)             # an empty corner when 3 are measured
+    for ax, (target, label, xlabel) in zip(axes.flat, present):
         data = summary[summary["target"] == target].sort_values("size")
         ax.set_title(label, loc="left")
         ax.set_xlabel(xlabel)
@@ -150,7 +157,8 @@ panels("cycles_median", "CPU cycles per call",
 # fig2: cycles per byte
 panels("cycles_per_byte_median", "CPU cycles per byte (median)",
        "Cycles per byte against size", "fig2_cycles_per_byte",
-       note="For AKDF, the bytes are the bytes of the new key it makes.")
+       note="For AKDF, the bytes are the bytes of the new key it makes."
+       if "akdf" in set(summary["target"]) else None)
 
 # fig3: throughput (only if the nominal frequency was known)
 if "MBps_median" in summary.columns:

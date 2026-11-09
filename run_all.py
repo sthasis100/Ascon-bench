@@ -24,6 +24,13 @@ RUN (Command Prompt, in the project folder)
   python run_all.py --pilot    a quick trial run    -> results_pilot
                                (5 repetitions, 2 or 3 sizes per program;
                                 it can never overwrite the real results)
+
+  ONE FUNCTION ONLY: add --only and its name. Every stage then does only
+  that function's part, and the results go to their own folder:
+  python run_all.py --only ascon_mac            -> results_ascon_mac
+  python run_all.py --pilot --only ascon_mac    -> results_pilot_ascon_mac
+  The names are ascon_mac, ascon_prf, ascon_prfshort and akdf; several can
+  be given with commas, for example --only ascon_mac,akdf
 ===========================================================================
 """
 import csv
@@ -75,19 +82,19 @@ TARGETS = [
     ("akdf",           "AKDF", CXOF,                                  KDF),
 ]
 
-# Official answer checks: name, Ascon folder, the designers' test program,
-# the official answer file, extra compiler flags.
+# Official answer checks: the program it is for, name, Ascon folder, the
+# designers' test program, the official answer file, extra compiler flags.
 OFFICIAL = [
-    ("Ascon-Mac", A + "/crypto_auth/asconmacv13/opt64", "genkat_auth.c",
+    ("ascon_mac", "Ascon-Mac", A + "/crypto_auth/asconmacv13/opt64", "genkat_auth.c",
      A + "/crypto_auth/asconmacv13/LWC_MAC_KAT_128_128.txt", []),
-    ("Ascon-Prf", A + "/crypto_auth/asconprfv13/opt64", "genkat_auth.c",
+    ("ascon_prf", "Ascon-Prf", A + "/crypto_auth/asconprfv13/opt64", "genkat_auth.c",
      A + "/crypto_auth/asconprfv13/LWC_PRF_KAT_128_512.txt", []),
     # PrfShort refuses messages over 16 bytes, so its test program is told
     # to stop at 16 - exactly as the designers' own CMake build does.
-    ("Ascon-PrfShort", A + "/crypto_auth/asconprfsv13/opt64", "genkat_auth.c",
+    ("ascon_prfshort", "Ascon-PrfShort", A + "/crypto_auth/asconprfsv13/opt64", "genkat_auth.c",
      A + "/crypto_auth/asconprfsv13/LWC_PRFS_KAT_128_128.txt", ["-DMAX_MESSAGE_LENGTH=16"]),
     # Our fast CXOF128 (for AKDF) against CXOF128's official answers.
-    ("Ascon-CXOF128 (opt64)", CXOF, "genkat_cxof.c",
+    ("akdf", "Ascon-CXOF128 (opt64)", CXOF, "genkat_cxof.c",
      A + "/crypto_cxof/asconcxof128/LWC_CXOF_KAT_128_512.txt", []),
 ]
 
@@ -102,14 +109,36 @@ OUR_ANSWERS = {
                  "D6735A467D558AAF8E54D18F0ED15AEE60933FDB26989172994364F7F7E3A211"},
 }
 
-# Code size is measured for each Ascon implementation we time
-# (AKDF runs on our fast CXOF128).
+# Code size is measured for each Ascon implementation we time: the program
+# it is for, name, Ascon folder (AKDF runs on our fast CXOF128).
 SIZE_TARGETS = [
-    ("Ascon-Mac", A + "/crypto_auth/asconmacv13/opt64"),
-    ("Ascon-Prf", A + "/crypto_auth/asconprfv13/opt64"),
-    ("Ascon-PrfShort", A + "/crypto_auth/asconprfsv13/opt64"),
-    ("Ascon-CXOF128 (opt64)", CXOF),
+    ("ascon_mac", "Ascon-Mac", A + "/crypto_auth/asconmacv13/opt64"),
+    ("ascon_prf", "Ascon-Prf", A + "/crypto_auth/asconprfv13/opt64"),
+    ("ascon_prfshort", "Ascon-PrfShort", A + "/crypto_auth/asconprfsv13/opt64"),
+    ("akdf", "Ascon-CXOF128 (opt64)", CXOF),
 ]
+
+# --only: benchmark only the functions named (for example --only ascon_mac).
+# Every stage then does only their part, and the results get their own folder.
+SELECTED = []
+for name, mode, folder, sizes in TARGETS:
+    SELECTED.append(name)
+if "--only" in sys.argv:
+    position = sys.argv.index("--only")
+    if position + 1 >= len(sys.argv):
+        print("--only needs a name: ascon_mac, ascon_prf, ascon_prfshort or akdf")
+        sys.exit(1)
+    wanted = sys.argv[position + 1].split(",")
+    for name in wanted:
+        if name not in SELECTED:
+            print("unknown name:", name, "- use ascon_mac, ascon_prf, ascon_prfshort or akdf")
+            sys.exit(1)
+    SELECTED = wanted
+    RESULTS = RESULTS + "_" + "_".join(SELECTED)
+TARGETS = [t for t in TARGETS if t[0] in SELECTED]
+OFFICIAL = [c for c in OFFICIAL if c[0] in SELECTED]
+OUR_ANSWERS = {name: OUR_ANSWERS[name] for name in OUR_ANSWERS if name in SELECTED}
+SIZE_TARGETS = [s for s in SIZE_TARGETS if s[0] in SELECTED]
 
 
 # ------------------------------------------------------------------- helpers
@@ -203,6 +232,7 @@ def machine_and_clock():
         "compiler": run(["gcc", "--version"]).splitlines()[0],
         "cflags": " ".join(CFLAGS),
         "ascon_commit": run(["git", "-C", A, "rev-parse", "HEAD"]).strip(),
+        "functions": ", ".join(SELECTED),
         "runs_per_point": RUNS,
         "pinned_core": CORE,
         "pilot": PILOT,
@@ -216,7 +246,7 @@ def machine_and_clock():
 
 # ------------------------------------------------- stage 2: build programs
 def build_programs():
-    print("\nSTAGE 2  building", len(TARGETS), "benchmark programs, all with", " ".join(CFLAGS))
+    print("\nSTAGE 2  building", len(TARGETS), "benchmark program" + ("s" if len(TARGETS) > 1 else "") + ", all with", " ".join(CFLAGS))
     for name, mode, folder, sizes in TARGETS:
         exe = BUILD + "/bench_" + name + ".exe"
         run(["gcc"] + CFLAGS + ["-I" + folder] + c_files(folder)
@@ -278,11 +308,12 @@ def check_our_answers():
 def correctness():
     print("\nSTAGE 3  correctness - nothing is timed unless every check passes")
     checks = []
-    for name, folder, generator, answers, extra in OFFICIAL:
+    for target, name, folder, generator, answers, extra in OFFICIAL:
         ok, detail = check_official(name, folder, generator, answers, extra)
         checks.append((name, ok, detail))
-    ok, detail = check_our_answers()
-    checks.append(("AKDF", ok, detail))
+    if len(OUR_ANSWERS) > 0:
+        ok, detail = check_our_answers()
+        checks.append(("AKDF", ok, detail))
 
     all_passed = True
     with open(RESULTS + "/kat_results.csv", "w", newline="") as f:
@@ -308,7 +339,7 @@ def code_size():
     -O3 is the code we time; -Os is what a small device would use."""
     print("\nSTAGE 4  code size (bytes of machine code)")
     rows = []
-    for name, folder in SIZE_TARGETS:
+    for target, name, folder in SIZE_TARGETS:
         sizes = []
         for option in ["-O3", "-Os"]:
             work = empty_folder(BUILD + "/size_" + simple_name(name) + option)
@@ -367,11 +398,13 @@ def measure():
 
 
 if __name__ == "__main__":
-    if not os.path.isdir(CXOF):
+    if "akdf" in SELECTED and not os.path.isdir(CXOF):
         print(CXOF, "is missing. Run  python make_variants.py  first.")
         sys.exit(1)
     if PILOT:
-        print("*** PILOT RUN: 5 repetitions, 2 or 3 sizes per program, saved in results_pilot ***\n")
+        print("*** PILOT RUN: 5 repetitions, 2 or 3 sizes per program, saved in " + RESULTS + " ***\n")
+    if len(SELECTED) < 4:
+        print("*** ONLY:", ", ".join(SELECTED), "- saved in " + RESULTS + " ***\n")
     machine_and_clock()
     build_programs()
     correctness()
