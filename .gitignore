@@ -4,8 +4,6 @@ ascon-c/
 build/
 variants/
 results_pilot/
-# Folders made by the data checks (README: Checking that the data is not contaminated)
-results_*/
 __pycache__/
 .vscode/
 # The designers' Python Ascon (downloaded for the AKDF check)
