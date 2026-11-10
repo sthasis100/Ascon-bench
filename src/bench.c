@@ -23,14 +23,26 @@
  *   MODE_AKDF   AKDF, NIST's planned KDF, built on CXOF128
  *
  * HOW TO RUN IT (Command Prompt)
- *   build\bench_<name>.exe <label> <runs> <sizes> [core]
+ *   build\bench_<name>.exe <label> <runs> <sizes> [core] [seed] [batch]
  *     label  a name for the CSV lines, for example ascon_mac
  *     runs   timed repetitions per size, for example 30.
  *            0 = VERIFY MODE: nothing is timed, and each result is
  *            printed in hex so that it can be checked.
  *     sizes  comma-separated, for example 1,16,64: the message length in
- *            bytes (for MODE_AKDF: the length of the new key)
+ *            bytes (for MODE_AKDF: the length of the new key). They are
+ *            timed in the order given.
  *     core   the CPU core to run on (default 2)
+ *     seed   the starting number for the test key and message (default
+ *            20260901; any number except 0). A different seed gives
+ *            different bytes: a check that the time does not depend on the
+ *            data. The expected answers in docs are for the default seed.
+ *     batch  bytes of work per timed batch (default 262144, which is
+ *            256 KB). Calls per batch = batch / size, never fewer than 32.
+ *            A different batch size is a check that the cost of the loop
+ *            and the clock does not show in the time per call.
+ *   To give a seed or a batch size, give the core as well, for example:
+ *     build\bench_ascon_mac.exe ascon_mac 30 1,1024 2 12345
+ *     build\bench_ascon_mac.exe ascon_mac 30 1,1024 2 20260901 131072
  *
  * OUTPUT, one line per repetition:
  *   target,mode,key_bytes,msg_bytes,out_bytes,run,reps,cycles
@@ -202,6 +214,7 @@ static int pin_to_core(int core) {
    A tiny random-number generator (xorshift64) that always starts from the
    same number (the seed): every computer gets the same bytes, and every
    function gets the same input. Only test data, never for security. */
+#define DEFAULT_SEED 20260901ULL
 static uint64_t rng_state;
 static uint8_t rng_byte(void) {
   rng_state ^= rng_state << 13;
@@ -219,8 +232,10 @@ static volatile uint8_t sink = 0;
 /* ---- HOW MANY CALLS PER TIMED BATCH ----------------------------------------
    One call is too short to time on its own, so we time a batch of calls
    and divide. About 256 KB of work per batch, and never fewer than 32. */
+#define DEFAULT_BATCH 262144ULL
+static unsigned long long batch_bytes = DEFAULT_BATCH;
 static unsigned long long reps_for(unsigned long long size) {
-  unsigned long long reps = 262144 / size;
+  unsigned long long reps = batch_bytes / size;
   if (reps < 32) {
     reps = 32;
   }
@@ -248,6 +263,7 @@ int main(int argc, char* argv[]) {
   int runs = 30;
   char sizes[256] = "16";
   int core = 2;
+  uint64_t seed = DEFAULT_SEED;
   char* tok;
   int i;
 
@@ -259,6 +275,16 @@ int main(int argc, char* argv[]) {
     sizes[sizeof(sizes) - 1] = '\0';
   }
   if (argc > 4) core = atoi(argv[4]);
+  if (argc > 5) seed = strtoull(argv[5], NULL, 10);
+  if (argc > 6) batch_bytes = strtoull(argv[6], NULL, 10);
+  if (seed == 0) {                      /* xorshift would only make zeros */
+    fprintf(stderr, "ERROR: the seed must not be 0\n");
+    return 1;
+  }
+  if (batch_bytes == 0) {
+    fprintf(stderr, "ERROR: the batch size must be at least 1 byte\n");
+    return 1;
+  }
 
   /* 1. Pin to one core, or say clearly that it did not work. */
   if (pin_to_core(core)) {
@@ -267,9 +293,13 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "WARNING: could not pin to core %d - running unpinned\n",
             core);
   }
+  if (seed != DEFAULT_SEED || batch_bytes != DEFAULT_BATCH) {
+    fprintf(stderr, "seed %llu, %llu bytes of work per batch\n",
+            (unsigned long long)seed, batch_bytes);
+  }
 
   /* 2. Make ALL the test data once, before any timing starts. */
-  rng_state = 20260901ULL;
+  rng_state = seed;
   for (i = 0; i < KEY_LEN; i++) key[i] = rng_byte();
   for (i = 0; i < MAX_MSG; i++) msg[i] = rng_byte();
 
