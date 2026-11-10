@@ -233,7 +233,7 @@ gcc -O3 -march=native -I%F% %F%\permutations.c %F%\prf.c %F%\printstate.c -Iasco
 build\bench_ascon_mac.exe ascon_mac 0 1,8,16,64,1024,65536
 ```
 
-The arguments are: a label, the number of repetitions (0 = check mode), the sizes, and optionally the CPU core.
+The arguments are: a label, the number of repetitions (0 = check mode), the sizes (timed in the order given), and optionally the CPU core, a seed for the test bytes and the bytes of work per batch (see "Checking that the data is not contaminated", after Step 8).
 
 **What you get:** a header line and one line per size, for example `ascon_mac,auth,16,C1CC87D845DB23B90D92D6C834BE2812`. These must match the lines in `docs\bench_verify_expected.txt`, which holds the 18 answers the four programs must give. Each was confirmed a separate way: Ascon-Mac, Ascon-Prf and Ascon-PrfShort against the designers' reference C code (not the fast code we time), and AKDF against the designers' Python Ascon (pyascon). The program also prints `pinned to core 2` on the screen; that line is normal and is not part of the results.
 
@@ -347,6 +347,81 @@ How to read it: both tools count with RDTSC, which ticks at a fixed rate, while 
 
 ---
 
+## Checking that the data is not contaminated
+
+**Why:** clean measurements do not change when you time the same thing again, or when you change something that should not matter. Each check below times some points again into a separate folder (your `results` folder is not touched), then `compare_runs.py` lines the new medians up with the old ones. A point is `same` when its median is within 2%, and `CHECK` otherwise.
+
+The checks use the programs that `run_all.py` builds. After updating the code, run `python run_all.py --pilot` once to rebuild them (it never touches `results`). Before each check, use the same conditions as for the real run: charger in, power mode on Best performance, other programs closed, laptop not used.
+
+**The two optional arguments.** After the core, a benchmark program also takes:
+
+- a **seed**: the starting number for the test key and message (default 20260901). A different seed gives different bytes.
+- a **batch** size: the bytes of work per timed batch (default 262144). Calls per batch = batch ÷ size, never fewer than 32.
+
+To give either, give the core as well. With neither, nothing changes.
+
+**1. Time the noisy points again.** Use the sizes `analyze.py` listed as noisy (here Ascon-Prf at 1, 64 and 128 bytes, and AKDF with 16 and 32-byte keys):
+
+```
+mkdir results_retime
+copy results\environment.json results_retime\
+build\bench_ascon_prf.exe ascon_prf 30 1,64,128 2 > results_retime\raw_runs.csv
+build\bench_akdf.exe akdf 30 16,32 2 | findstr /v /b /c:"target," >> results_retime\raw_runs.csv
+python analyze.py results_retime
+python compare_runs.py results results_retime
+```
+
+`findstr` drops the second program's header line, so both programs end up in one file. If a point's noise is now under 5%, its first measurement was disturbed, and the new one is the one to trust.
+
+**2. Run the whole study again.** Rename the first run, then run everything again:
+
+```
+ren results results_first
+python run_all.py
+python analyze.py
+python compare_runs.py results_first results
+```
+
+**3. Time the sizes in a different order** (largest first):
+
+```
+mkdir results_order
+copy results\environment.json results_order\
+build\bench_ascon_mac.exe ascon_mac 30 65536,16384,4096,1536,1024,512,256,128,64,32,16,8,1 2 > results_order\raw_runs.csv
+python analyze.py results_order
+python compare_runs.py results results_order
+```
+
+If the medians agree, what ran before a size did not change its time.
+
+**4. Use different message bytes** (seed 12345):
+
+```
+mkdir results_seed
+copy results\environment.json results_seed\
+build\bench_ascon_mac.exe ascon_mac 30 1,64,1024,65536 2 12345 > results_seed\raw_runs.csv
+python analyze.py results_seed
+python compare_runs.py results results_seed
+```
+
+The designers write their code so that its running time does not depend on the data. If different bytes give different times, something other than Ascon is in the measurement.
+
+**5. Use a different batch size** (half: 131072 bytes, so 128 calls per batch at 1,024 bytes instead of 256):
+
+```
+mkdir results_batch
+copy results\environment.json results_batch\
+build\bench_ascon_mac.exe ascon_mac 30 1,64,1024,65536 2 20260901 131072 > results_batch\raw_runs.csv
+python analyze.py results_batch
+python compare_runs.py results results_batch
+```
+
+If the time per call stays the same, the cost of the loop and of reading the clock does not show in the results.
+
+**What you get:** for each check, the table on the screen and `run_check.csv` in the check's folder, with both medians, the difference, the noise of both runs and `same` or `CHECK` for every point. The check folders (`results_retime`, `results_order` and so on) are never committed.
+
+---
+
 ## Step 9: Final report and presentation (in progress)
 
 The final report will present what we measured, how we made sure the measurements can be trusted, and how the cost of each function changes with the size of its input.
@@ -379,6 +454,7 @@ Ascon-bench/
 ├─ analyze.py                  Step 8: statistics
 ├─ validate_getcycles.py       Step 8: cross-check with the designers' timing tool
 ├─ plots.py                    Step 8: the figures
+├─ compare_runs.py             checks: lines up two runs, point by point
 ├─ docs/
 │  ├─ ctest_results.txt        Step 2: our run of the designers' tests
 │  └─ bench_verify_expected.txt  Step 6: the 18 answers the benchmark programs must give
@@ -386,7 +462,7 @@ Ascon-bench/
 └─ .gitmodules
 ```
 
-The steps also make these: `build\`, `variants\`, `results_pilot\` and `ascon.py`, which are never committed (they are listed in `.gitignore`), and `results\`, which holds the real results.
+The steps also make these: `build\`, `variants\`, `results_pilot\`, the check folders (`results_retime\` and so on) and `ascon.py`, which are never committed (they are listed in `.gitignore`), and `results\`, which holds the real results.
 
 ---
 
