@@ -29,9 +29,6 @@ WHAT IT WRITES (in the results folder)
   raw_runs_detailed.csv  every single measurement: algorithm,
                          implementation, sizes, repetition, cycles, time
 
-Only the four functions listed in run_all.py are used, so results from an
-older run that timed more programs can still be analysed.
-
 RUN (Command Prompt, in the project folder)
   python analyze.py                  the real results (results)
   python analyze.py results_pilot    the pilot's results
@@ -52,14 +49,10 @@ raw = pd.read_csv(RESULTS + "/raw_runs.csv")
 with open(RESULTS + "/environment.json") as f:
     ghz = json.load(f)["nominal_ghz"]
 
-# Keep only the four functions we benchmark.
+# Each program's Ascon folder, for raw_runs_detailed.csv.
 folders = {}
 for name, mode, folder, sizes in TARGETS:
     folders[name] = folder
-raw = raw[raw["target"].isin(list(folders))].copy()
-if len(raw) == 0:
-    print("No measurements of the four functions in", RESULTS + "/raw_runs.csv")
-    sys.exit(1)
 
 # ------------------------------------------------ one value per measurement
 # The size of a point is the message length - except for AKDF, where it is

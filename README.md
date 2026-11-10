@@ -325,7 +325,7 @@ How each metric is calculated:
 | Time in ns | cycles ÷ the CPU's nominal frequency in GHz |
 | MB/s | size ÷ time in ns × 1,000 |
 
-Time in ns and MB/s is converted from cycles with the CPU's nominal frequency (3.294 GHz on our laptop, read from Windows). It is a conversion, not a second clock. `analyze.py` uses only the four functions, so it also works on results from an older run that timed more programs.
+Time in ns and MB/s is converted from cycles with the CPU's nominal frequency (3.294 GHz on our laptop, read from Windows). It is a conversion, not a second clock.
 
 **validate_getcycles.py** checks our timing method against the designers' own timing tool, `getcycles` (in `ascon-c\tests`). It builds getcycles with our flags for Ascon-Mac and Ascon-Prf, runs it five times, and compares its median cycles per byte with ours at 1, 8, 16, 32, 64 and 1,536 bytes. It writes `getcycles_validation.csv` and prints PASS or CHECK.
 
